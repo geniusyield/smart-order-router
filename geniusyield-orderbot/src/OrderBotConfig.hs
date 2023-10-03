@@ -82,7 +82,10 @@ data OrderBotConfig =
          random (to decrease collisions), or not (to maximize profit)
     -}
     , botCPORConfig             :: PORConfig
-    {- ^ FIX ME
+    {- ^ UTxO reference of the UTxO storing the NFT that is placed in each order.
+         Address of the previous UTxO, together with a "must have" NFT to officially
+         identification.
+
          UTxO reference of the partial order minting policy.
          UTxO reference of the partial order validator.
     -}

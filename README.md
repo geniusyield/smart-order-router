@@ -1,4 +1,32 @@
-# Smart Order Router
+<h1 align="center">Smart Order Router</h1>
+<p align="center">
+    <a href="https://www.haskell.org/">
+      <img alt="GitHub top language" src="https://img.shields.io/github/languages/top/geniusyield/smart-order-router">
+    </a>
+    <a href="https://github.com/geniusyield/smart-order-router/commits/main">
+      <img src="https://img.shields.io/github/commit-activity/m/geniusyield/smart-order-router?style=flat-square&label=Commit%20Activity" />
+    </a>
+    <a href="https://github.com/geniusyield/smart-order-router/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/geniusyield/smart-order-router?style=flat-square&label=Licence" />
+    </a>
+    <a href="./CONTRIBUTING.md">
+      <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" />
+    </a>
+    <a href="https://twitter.com/GeniusyieldO">
+      <img src="https://img.shields.io/badge/-%40GeniusYieldO-F3F1EF?style=flat-square&logo=twitter&logoColor=1D9BF0" />
+    </a>
+    <a href="https://discord.gg/TNHf4fs626">
+      <img src="https://img.shields.io/badge/-Discord-414EEC?style=flat-square&logo=discord&logoColor=white" />
+    </a>
+  </p>
+
+## Table of contents
+
+- 🎓 [Crash Course](#crash-course-geniusyield-dex-orders--sor)
+- 🚀 [Building and running](#building-and-running)
+- 🧠 [Strategies](#strategies)
+- 🛠️ [Troubleshooting](#troubleshooting)
+- ⚖️ [License](#license)
 
 ## Overview
 
@@ -39,7 +67,7 @@ could fill that order by buying from it `6 tokenA` and paying the owner `12 toke
 isn't possible to buy, for instance, `3 tokenA` from the order because the minimal amount
 was setup to `5`, except the amount of offered tokens is less than that.
 
-One important thing to mention, that is transparent for any end user, is that there are
+One important thing to mention that is transparent for any end user, is that there are
 two kinds of fills: _complete_ and _partial_. A complete fill will buy all the offered
 tokens from the order, and for the partial fill, we need to specify the amount we want
 to buy from the order. For us, that will be running and probably improving this implementation
@@ -54,10 +82,10 @@ with a unit price of `0.4 tokenA`. We could earn some tokens by “combining” 
 and take advantage of the price difference. Following the example, given we bought `6 tokenA`
 using `12 tokenB`, we now can use these `6 tokenA` to buy back `15 tokenB` from this other
 order, earning `3 tokenB`. These two fills can be combined into a single transaction, in
-fact, we could combine more than 2 orders.
+fact, we could combine more than two orders.
 
 The SOR has the ability to build these transactions matching orders programmatically,
-that is combining orders into a single transaction. Which orders the SOR will match is
+that is, combining orders into a single transaction. Which orders the SOR will match is
 determined by the strategy that must be configured in advance. To reason about any strategy,
 we need to classify orders into sell or buy. It's possible for an order to be a buy or sell,
 depending on the token used to earn the difference between the orders. In the previous example,
@@ -69,7 +97,7 @@ commodity with currency (that is offers currency), it will be considered a buy o
 
 Using the previous example we could have two cases:
 
-<table>
+<table align="center">
 <tr><th> Commodity A | Currency B </th><th> Commodity B | Currency A </th></tr>
 <tr><td>
 
@@ -98,23 +126,30 @@ using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 to
 
 ### Docker
 
-:construction: Comming Soon :construction:
+:construction: Coming Soon :construction:
 
 ### Local build
 
-First, you need to setup the necessary tooling to work with [haskell.nix](https://github.com/input-output-hk/haskell.nix),
-then simply run `nix develop`, and it will drop you into a shell with all the necessary tools. Once
-inside the environment, you can build the order bot with `cabal build all`.
+First, you need to setup the necessary tooling to work with [haskell.nix](https://github.com/input-output-hk/haskell.nix).
+A complete guide and troubleshooting of how to install and configure `nix` can be
+found on one of the officials IOG repositories: [plutus-apps](https://github.com/input-output-hk/plutus-apps/blob/main/CONTRIBUTING.adoc#installing-and-setting-up-nix).
+Once we completed the previous steps we can simply run `nix develop`, and it will
+drop you into a shell with all the necessary tools. Once inside the environment,
+you can build the order bot with `cabal build all`.
 
-#### Orderbot Config
+### Orderbot Config
 
-To run the order bot, it is necessary to setup the provider and specify the bot options. You
-can execute the order bot using one of two possible providers: `Maestro` or `Blockfrost`. In order
-to function properly, each provider requires a specific `API-TOKEN` or `API-KEY` (that should be
-created on each official site). These must be entered into the appropriate provider configuration
-file, either [atlas-config-maestro.json](./config-files/atlas-config-maestro.json) or [atlas-config-blockfrost.json](./config-files/atlas-config-blockfrost.json).
-Here we must configure also the `networkId` to specify which Blockchain we want to use.
+To run the order bot, it is necessary to setup the provider and specify the bot options. There is one option for a completely local provider and two remote ones.
 
+#### Local Provider
+
+[Kupo](https://github.com/CardanoSolutions/kupo) can be used as a local provider. For this it is necessary to provide a path to a cardano node socket file and the Kupo url in the [atlas-config-kupo.json](./config-files/atlas-config-kupo.json) file.
+
+#### Remote Providers
+
+There are two possible remote providers: `Maestro` or `Blockfrost`. In order to function properly, each provider requires a specific `API-TOKEN` or `API-KEY` (that should be created on each official site). These must be entered into the appropriate provider configuration file, either [atlas-config-maestro.json](./config-files/atlas-config-maestro.json) or [atlas-config-blockfrost.json](./config-files/atlas-config-blockfrost.json).
+
+You must also configure the `networkId` to specify which Blockchain to use.
 Inside any of those configuration files, we can also configure the logging mechanisms, we can
 specify the log severity level with `Debug`, `Info`, `Warning`, but also the sinking of the information
 by choosing between a console log or a file. Besides different levels of verbosity. We even can
@@ -163,8 +198,8 @@ file. The complete bot configuration looks like this:
 - `collateral`, an optional field to specify the collateral for the bot. If not
   present, Atlas will choose a suitable UTxO as collateral.
 - `nftMintingPolicyFP` and `orderValidatorFP`, the filepath where the minting policy
-  and validator must be placed.
-- `"validatorsRefs"`, contains information neccesary for the validator. Contains 3
+  and validator are stored.
+- `"validatorsRefs"`, contains the information necessary for the validator. Contains 3
   mandatory fields and 2 optional ones.
   - `"refAddr"`, address where the reference NFT is placed.
   - `"refNftAc"`, assetClass of the reference NFT is placed.
@@ -182,10 +217,10 @@ file. The complete bot configuration looks like this:
 - `randomizeMatchesFound`, a boolean that dictates whether the bot chooses the tx
   to submit at random (to decrease collisions), or not (to maximize profit)
 - `scanTokens`, the list of token pairs to be scanned. Each element in the list specifies
-  which token in the pair is the commodityAsset and which is the currencyAsset. The bot
-  will arbitrage the orders to get tokens of the currencyAsset. Each token must be written
+  which token in the pair is the `commodityAsset` and which is the `currencyAsset`. The bot
+  will arbitrage the orders to get tokens of the `currencyAsset`. Each token must be written
   with the format policyId.hexTokenName. For convenience, scanning ADAs can be done by
-  writing lovelace or the empty string. The multi asset order book it's built using this list.
+  writing lovelace or the empty string. The multi-asset order book is built using this list.
 
 #### Creating Signing Key
 
@@ -212,13 +247,13 @@ preprod testnet. You can claim some **preprod** lovelaces using the
 [faucet](https://docs.cardano.org/cardano-testnet/tools/faucet/).
 
 It's **recomended** to create and setup a `collateral`. A UTxO with 5 ADAs will
-do the work. But has we mentioned the `collateral` config field is optional.
+do the work. But as we mentioned the `collateral` config field is optional.
 
 #### Deployed Contract
 
 The SOR has the ability to use reference scripts on the filling transactions to
 help minimize the fees. To do that, we need to use the official contract information
-is complete placed on the blockchain. That is the validator and minting policy.
+that is completely placed on the blockchain. That is the validator and minting policy.
 
 ##### Preprod
 ```json
@@ -232,7 +267,7 @@ is complete placed on the blockchain. That is the validator and minting policy.
 ```
 
 ##### Mainnet
-:construction: Comming Soon :construction:
+:construction: Coming Soon :construction:
 ```json
 "validatorRefs":
   { "refAddr": ""
@@ -246,7 +281,7 @@ is complete placed on the blockchain. That is the validator and minting policy.
 #### Running
 
 Once we compiled and configured the order bot, you can execute using the [Makefile](./Makefile):
-`make orderbot-maestro` or `make orderbot-blockfrost`.
+`make orderbot-maestro`, `make orderbot-blockfrost` or `make orderbot-kupo`.
 
 #### Testing
 
@@ -256,7 +291,7 @@ like for example, given a matching between sell and buy orders there is always a
 Among others that can be found on [Tests.Prop.Strategies](./geniusyield-orderbot/test/Tests/Prop/Strategies.hs)
 module.
 
-For running the tests we can just simple execute `make orderbot-tests`.
+For running the tests we can just simply execute `make orderbot-tests`.
 
 ## Design
 
@@ -334,9 +369,10 @@ Finishing the implementation of `oneBuyToManySell` is left as an exercise.
 
 <details>
   <summary>Hint</summary>
+
 > Checking [`multiFill`](./geniusyield-orderbot/src/Strategies.hs#L95-L132),
-           can help to realize that it's enough to use [`oneSellToManyBuy`](./geniusyield-orderbot/src/Strategies.hs#L82-L92)
-           as inspiration and "flip" something.
+  can help to realize that it's enough to use [`oneSellToManyBuy`](./geniusyield-orderbot/src/Strategies.hs#L82-L92)
+  as inspiration and "flip" something.
 </details>
 
 Questions: Choosing between one strategy or the other will always enforce some matching strategy, so
@@ -382,4 +418,4 @@ different SOR instances?
 
 ## License
 
-This project is licensed under the Apache-2.0 license. Please see the LICENSE file for more details.
+[Apache-2.0](./LICENSE) © [GYELD GMBH](https://www.geniusyield.co).
