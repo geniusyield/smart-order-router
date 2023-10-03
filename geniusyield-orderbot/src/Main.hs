@@ -24,8 +24,8 @@ parseArgs = do
         [action, providerConfigFile] -> return (action, providerConfigFile, Nothing)
         _ -> throwIO . userError $ unlines
              [ "Expected two or three command line arguments, in order:"
-             , "\t1. Action to execute. Either 'run', 'deploy-validator' or 'deploy-minting'"
-             , "\t2. Path to the GY framework config-file"
+             , "\t1. Action to execute: 'run'"
+             , "\t2. Path to the Atlas provider configuration file"
              , "\t3. Path to the OrderBot config-file (only when reading config from file)"
              ]
 

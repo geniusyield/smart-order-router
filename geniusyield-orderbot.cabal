@@ -13,8 +13,8 @@ copyright:          (c) 2023 GYELD GMBH
 author:             Lars Bruenjes
 maintainer:         support@geniusyield.co
 category:           Blockchain, Cardano, Framework
-homepage:           FIX ME
-bug-reports:        FIX ME
+homepage:           https://github.com/geniusyield/smart-order-router#readme
+bug-reports:        https://github.com/geniusyield/smart-order-router/issues
 extra-source-files: README.md
 
 -- Common sections
