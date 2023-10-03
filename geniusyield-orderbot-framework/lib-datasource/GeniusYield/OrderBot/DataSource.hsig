@@ -1,0 +1,82 @@
+{-|
+Module      : GeniusYield.OrderBot.DataSource
+Synopsis    : The data source interface for getting information on orders.
+Copyright   : (c) 2023 GYELD GMBH
+License     : Apache 2.0
+Maintainer  : support@geniusyield.co
+Stability   : develop
+Description : These are the types and queries that should be necessary to establish
+a connection to a _data source_ and fetch information on DEX orders.
+
+-}
+signature GeniusYield.OrderBot.DataSource
+    ( Connection
+    , DEX
+    , connectDB
+    , closeDB
+    , mkDEX
+    , withEachAssetOrders
+    ) where
+
+import Prelude                    ( IO, Maybe )
+
+import GeniusYield.Types          ( GYNetworkId, GYProviders, GYAssetClass
+                                  , GYAddress, GYMintingPolicy, GYValidator
+                                  , PlutusVersion(PlutusV2)
+                                  , GYTxOutRef
+                                  )
+import GeniusYield.OrderBot.Types ( OrderAssetPair, OrderInfo
+                                  , OrderType (BuyOrder, SellOrder)
+                                  )
+
+-- | Means to connect to a data source for orders/liquidity positions.
+data Connection
+
+{- | Given a path to the expected config file, connect to a data source serving
+     information about GY DEX orders on the blockchain.
+-}
+connectDB :: GYNetworkId -> GYProviders -> IO Connection
+
+-- | Close the DB connection.
+closeDB :: Connection -> IO ()
+
+{- | DEX Compiled Scripts to use in the dex operations, optionally the utxo
+     reference to use as reference scripts, along with additional information
+     about other ecosystem components.
+-}
+data DEX
+
+{- | Given the DEX NFT minting policy and the Partial Orders validator, create
+     the DEX Compiled Scripts. Optionally add utxo reference to use as script ref
+     for the validator and nft minting policy.
+-}
+mkDEX
+    :: GYMintingPolicy PlutusV2
+    -> GYValidator PlutusV2
+    -> Maybe GYTxOutRef
+    -- ^ Script Ref for the Partial Orders Validator
+    -> Maybe GYTxOutRef
+    -- ^ Script Ref for the NFT minting policy
+    -> (GYAddress, GYAssetClass, GYTxOutRef)
+    -- ^ FIX ME
+    -> DEX
+
+{- | Fetch all unique DEX order asset pairings, and for each such asset pair, fetch all buy and sell orders.
+
+It takes a list of asset pairs. Only orders operating these asset class pairs, are
+retrieved. This can increase throughput when utilize effectively.
+
+The distinction between "buy" and "sell" is further explained in "GeniusYield.OrderBot.Types.OrderInfo"
+and "GeniusYield.OrderBot.Types.OrderAssetPair".
+
+Fetched information is fed into given accumulator function one by one, in no particular order. The accumulator
+function's results will be accumulated, starting with the given accumulator, and returned wrapped within an
+IO action.
+-}
+withEachAssetOrders
+    :: Connection
+    -> DEX
+    -> [OrderAssetPair]
+    -> (a -> (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #) -> a)
+    -> a
+    -> IO a

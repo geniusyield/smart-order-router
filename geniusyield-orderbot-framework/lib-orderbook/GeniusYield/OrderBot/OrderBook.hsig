@@ -1,0 +1,190 @@
+{-|
+Module      : GeniusYield.OrderBot.OrderBook
+Synopsis    : The public query-focused interface of an opaque 'OrderBook' data structure.
+Copyright   : (c) 2023 GYELD GMBH
+License     : Apache 2.0
+Maintainer  : support@geniusyield.co
+Stability   : develop
+Description : These are the queries _we think_ most order matching strategies will
+make in order to perform the order matching task. New queries can be added of course,
+but whether or not new queries will be efficient depends entirely on the implementation
+under the hood.
+
+For now, the most common "order matching queries" are exported in this module, as
+well utilities to construct the order book.
+
+-}
+signature GeniusYield.OrderBot.OrderBook (
+    -- * Core Order book types
+    MultiAssetOrderBook,
+    mkMultiAssetOrderBook,
+    maOrderBookToList,
+    OrderBook,
+    -- * Order book components
+    Orders,
+    buyOrders,
+    sellOrders,
+    -- * Order book construction
+    populateOrderBook,
+    buildOrderBookList,
+    -- * Order book queries
+    lowestSell,
+    highestBuy,
+    withoutTip,
+    foldlOrders,
+    foldrOrders,
+    ordersLTPrice,
+    ordersLTEPrice,
+    ordersGTPrice,
+    ordersGTEPrice,
+    volumeLTPrice,
+    volumeLTEPrice,
+    volumeGTPrice,
+    volumeGTEPrice,
+    -- * MultiAssetOrderBook reading utilities
+    withEachAsset
+) where
+
+import           Prelude                         (IO)
+
+import           Data.Aeson                      (ToJSON)
+import           Data.Kind                       (Type)
+
+import           GeniusYield.OrderBot.Types      ( OrderAssetPair(..)
+                                                 , OrderType (BuyOrder, SellOrder)
+                                                 ,  OrderInfo, Price, Volume
+                                                 )
+import           GeniusYield.OrderBot.DataSource ( Connection, DEX )
+
+-------------------------------------------------------------------------------
+-- Core Order book types
+-------------------------------------------------------------------------------
+
+{- | In a DEX, with the existence of many possible asset pairings, an order book is really
+a collection of several orderbooks - all belonging to specific token pairings.
+-}
+data MultiAssetOrderBook
+
+mkMultiAssetOrderBook :: [(OrderAssetPair, OrderBook)] -> MultiAssetOrderBook
+
+maOrderBookToList :: MultiAssetOrderBook -> [(OrderAssetPair, OrderBook)]
+
+{- | The "Order book", in the context of the order matching bot, is a data source
+that can efficiently answer queries like:
+1. What are the intersecting buy and sell orders?
+2. What is the max bid?
+3. What is the min ask?
+
+etc.
+-}
+data OrderBook
+
+{- | It is helpful to have the JSON version of an order book. If it isn't
+     interesting on your implementation, you can always give the instance with
+     the empty object.
+
+     instance ToJSON OrderBook where
+         toJSON _ = object []
+-}
+instance ToJSON OrderBook
+
+-------------------------------------------------------------------------------
+-- Order book components
+-------------------------------------------------------------------------------
+
+-- | The simple and partial DEX orders for a particular 'OrderAssetPair'.
+type Orders :: OrderType -> Type
+data Orders t
+
+-------------------------------------------------------------------------------
+-- Order book population related interfaces
+-------------------------------------------------------------------------------
+
+{- | Given a DB connection to a database holding information about GY DEX orders on the blockchain,
+return a populated OrderBook.
+
+Also takes the compiled plutus scripts of the GY DEX.
+
+Also takes a list of token pairs to filter uninteresting orders. This should be
+passed to the datasource function(s).
+
+The 'OrderBot.DataSource' signature also exposes functions to query buy orders, and sell orders.
+This implementation may use those as necessary.
+-}
+populateOrderBook
+    :: Connection
+    -> DEX
+    -> [OrderAssetPair]
+    -> IO MultiAssetOrderBook
+
+buildOrderBookList
+  :: [(OrderAssetPair, OrderBook)]
+  -> (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #)
+  -> [(OrderAssetPair, OrderBook)]
+-------------------------------------------------------------------------------
+-- Order book queries
+-------------------------------------------------------------------------------
+
+-- Components
+
+buyOrders :: OrderBook -> Orders 'BuyOrder
+
+sellOrders :: OrderBook -> Orders 'SellOrder
+
+-- Minima & Maxima
+
+lowestSell :: Orders 'SellOrder -> OrderInfo 'SellOrder
+
+highestBuy :: Orders 'BuyOrder -> OrderInfo 'BuyOrder
+
+-- Slicing
+
+withoutTip :: Orders t -> Orders t
+
+-- Folds
+
+{- | Left associative fold over the 'Orders' data structure.
+
+The order in which each 'OrderInfo' is passed onto the function, depends on the type of
+'Orders'.
+
+For sell orders, it should act like a 'foldr' on a list with _ascending_ orders based on price.
+For buy orders, it should act like a 'foldr' on a list with _descending_ orders based on price.
+-}
+foldlOrders :: forall a t. (a -> OrderInfo t -> a) -> a -> Orders t -> a
+
+{- | Right associative fold over the 'Orders' data structure.
+
+The order in which each 'OrderInfo' is passed onto the function, depends on the type of
+'Orders'.
+
+For sell orders, it should act like a 'foldl' on a list with _ascending_ orders based on price.
+For buy orders, it should act like a 'foldl' on a list with _descending_ orders based on price.
+-}
+foldrOrders :: forall a t. (OrderInfo t -> a -> a) -> a -> Orders t -> a
+
+-- Price queries
+
+ordersLTPrice :: Price -> Orders t -> Orders t
+
+ordersLTEPrice :: Price -> Orders t -> Orders t
+
+ordersGTPrice :: Price -> Orders t -> Orders t
+
+ordersGTEPrice :: Price -> Orders t -> Orders t
+
+-- Volume queries
+
+volumeLTPrice :: Price -> Orders t -> Volume
+
+volumeLTEPrice :: Price -> Orders t -> Volume
+
+volumeGTPrice :: Price -> Orders t -> Volume
+
+volumeGTEPrice :: Price -> Orders t -> Volume
+
+-------------------------------------------------------------------------------
+-- MultiAssetOrderBook reading utilities
+-------------------------------------------------------------------------------
+
+withEachAsset :: (OrderAssetPair -> OrderBook -> [a]) -> MultiAssetOrderBook -> [a]

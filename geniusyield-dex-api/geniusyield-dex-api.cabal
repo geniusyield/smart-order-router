@@ -1,0 +1,107 @@
+cabal-version: 3.4
+name:          geniusyield-dex-api
+version:       0.1.0.0
+synopsis:      GeniusYield DEX Api
+build-type:    Simple
+license:       Apache-2.0
+copyright:     (c) 2023 GYELD GMBH
+author:        Lars Bruenjes
+maintainer:    support@geniusyield.co
+category:      Blockchain, Cardano, Api
+
+-- Common sections
+
+common common-ghc-opts
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns -Wno-unused-do-bind
+    -Wno-partial-type-signatures -Wincomplete-record-updates
+    -Wmissing-deriving-strategies -Wno-name-shadowing -Wunused-foralls
+    -Wno-unticked-promoted-constructors -fprint-explicit-foralls
+    -fprint-explicit-kinds
+
+common common-deps
+  build-depends:
+    , aeson
+    , atlas-cardano
+    , base
+    , cardano-api
+    , containers
+    , http-types
+    , mtl
+    , plutus-ledger-api
+    , plutus-tx
+    , ply-core
+    , postgresql-simple
+    , postgresql-simple-url
+    , text
+
+common common-lang
+  default-language: Haskell2010
+  default-extensions:
+    ApplicativeDo
+    BangPatterns
+    BinaryLiterals
+    ConstrainedClassMethods
+    ConstraintKinds
+    DataKinds
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    DoAndIfThenElse
+    EmptyCase
+    EmptyDataDecls
+    EmptyDataDeriving
+    ExistentialQuantification
+    ExplicitForAll
+    FlexibleContexts
+    FlexibleInstances
+    GADTSyntax
+    GeneralisedNewtypeDeriving
+    HexFloatLiterals
+    ImplicitPrelude
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MonomorphismRestriction
+    MultiParamTypeClasses
+    NamedFieldPuns
+    MultiWayIf
+    NoStarIsType
+    NumericUnderscores
+    OverloadedStrings
+    PatternGuards
+    PatternSynonyms
+    PolyKinds
+    PostfixOperators
+    RankNTypes
+    RecordWildCards
+    RelaxedPolyRec
+    RoleAnnotations
+    ScopedTypeVariables
+    StandaloneDeriving
+    StandaloneKindSignatures
+    TraditionalRecordSyntax
+    TupleSections
+    TypeApplications
+    TypeFamilyDependencies
+    TypeOperators
+    ViewPatterns
+
+-- Build targets
+
+library
+  import:          common-lang
+  import:          common-deps
+  import:          common-ghc-opts
+  hs-source-dirs:  src
+  exposed-modules:
+    GeniusYield.DEX.Api.Constants
+    GeniusYield.DEX.Api.PartialOrder
+    GeniusYield.DEX.Api.Utils
+    GeniusYield.DEX.Api.Types

@@ -1,0 +1,213 @@
+cabal-version: 3.4
+name:          geniusyield-orderbot
+version:       0.1.0.0
+synopsis:      Smart Order Router
+description: Open-source Smart Order Router framework to connect liquidity from
+             the GeniusYield DEX to empowers users to deploy their own arbitrage
+             strategies and bring true decentralization to the Cardano Defi
+             ecosystem.
+
+license:            Apache-2.0
+license-file:       LICENSE
+copyright:          (c) 2023 GYELD GMBH
+author:             Lars Bruenjes
+maintainer:         support@geniusyield.co
+category:           Blockchain, Cardano, Framework
+homepage:           FIX ME
+bug-reports:        FIX ME
+extra-source-files: README.md
+
+-- Common sections
+
+common common-ghc-opts
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns -Wno-unused-do-bind
+    -Wno-partial-type-signatures -Wincomplete-record-updates
+    -Wmissing-deriving-strategies -Wno-name-shadowing -Wunused-foralls
+    -Wno-unticked-promoted-constructors -fprint-explicit-foralls
+    -fprint-explicit-kinds
+
+common common-deps
+  build-depends:
+    , aeson
+    , aeson-pretty
+    , atlas-cardano
+    , base
+    , bytestring
+    , containers
+    , mtl
+    , mwc-random
+    , random
+    , random-fu
+    , serialise
+    , text
+    , vector
+
+common common-lang
+  default-language: Haskell2010
+  default-extensions:
+    ApplicativeDo
+    BangPatterns
+    BinaryLiterals
+    ConstrainedClassMethods
+    ConstraintKinds
+    DataKinds
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    DoAndIfThenElse
+    EmptyCase
+    EmptyDataDecls
+    EmptyDataDeriving
+    ExistentialQuantification
+    ExplicitForAll
+    FlexibleContexts
+    FlexibleInstances
+    GADTSyntax
+    GeneralisedNewtypeDeriving
+    HexFloatLiterals
+    ImplicitPrelude
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MonomorphismRestriction
+    MultiParamTypeClasses
+    NoStarIsType
+    NamedFieldPuns
+    NumericUnderscores
+    OverloadedStrings
+    PatternGuards
+    PatternSynonyms
+    PolyKinds
+    PostfixOperators
+    RankNTypes
+    RelaxedPolyRec
+    RoleAnnotations
+    ScopedTypeVariables
+    StandaloneDeriving
+    StandaloneKindSignatures
+    TraditionalRecordSyntax
+    TupleSections
+    TypeApplications
+    TypeFamilyDependencies
+    TypeOperators
+    UnboxedTuples
+    ViewPatterns
+
+-- Build targets
+
+library            datasource-providers
+  import:          common-lang
+  import:          common-deps
+  import:          common-ghc-opts
+  hs-source-dirs:  impl/datasource-providers
+  build-depends:
+    , geniusyield-orderbot-framework:common
+    , geniusyield-dex-api
+  exposed-modules: GeniusYield.OrderBot.DataSource.Providers
+
+library            orderbook-list
+  import:          common-lang
+  import:          common-deps
+  import:          common-ghc-opts
+  hs-source-dirs:  impl/orderbook-list
+  build-depends:
+    , geniusyield-orderbot-framework:common
+    , geniusyield-orderbot-framework:datasource
+  exposed-modules:
+    GeniusYield.OrderBot.OrderBook.List
+
+library           geniusyield-strategies
+  import:         common-lang
+  import:         common-deps
+  import:         common-ghc-opts
+  hs-source-dirs: geniusyield-orderbot/src
+  build-depends:
+    , geniusyield-orderbot-framework
+    , geniusyield-orderbot-framework:common
+    , geniusyield-orderbot:datasource-providers
+    , geniusyield-orderbot:orderbook-list
+    , geniusyield-dex-api
+    , envy
+    , cardano-api
+  mixins:
+    , geniusyield-orderbot:orderbook-list requires
+        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers )
+    , geniusyield-orderbot-framework requires
+        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
+        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        )
+  exposed-modules:
+    Strategies
+  ghc-options:
+    -O2
+
+-- The primary orderbot executable - this must be instantiated with the signature
+-- implementations.
+
+executable         geniusyield-orderbot-exe
+  import:          common-lang
+  import:          common-deps
+  import:          common-ghc-opts
+  hs-source-dirs:  geniusyield-orderbot/src
+  main-is:         Main.hs
+  other-modules:
+    OrderBotConfig
+    Strategies
+  build-depends:
+    , cardano-api
+    , envy
+    , geniusyield-orderbot-framework
+    , geniusyield-orderbot-framework:common
+    , geniusyield-orderbot:datasource-providers
+    , geniusyield-orderbot:orderbook-list
+    , geniusyield-orderbot:geniusyield-strategies
+    , geniusyield-dex-api
+    , plutus-ledger-api
+    , ply-core
+  mixins:
+    , geniusyield-orderbot:orderbook-list requires
+        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers )
+    , geniusyield-orderbot-framework requires
+        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
+        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        )
+  ghc-options:
+    -O2 -threaded -rtsopts -with-rtsopts=-N
+
+test-suite strategies-tests
+  import:         common-lang
+  import:         common-deps
+  import:         common-ghc-opts
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: geniusyield-orderbot/test/
+  other-modules:
+    Tests.Prop.Strategies
+    Tests.Prop.Orderbook
+    Tests.Prop.Utils
+  build-depends:
+    , cardano-api
+    , envy
+    , geniusyield-orderbot-framework
+    , geniusyield-orderbot-framework:common
+    , geniusyield-orderbot:datasource-providers
+    , geniusyield-orderbot:orderbook-list
+    , geniusyield-orderbot:geniusyield-strategies
+    , geniusyield-dex-api
+    , QuickCheck
+    , tasty
+    , tasty-quickcheck
+  mixins:
+    , geniusyield-orderbot:orderbook-list requires
+        (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers)
+    , geniusyield-orderbot-framework requires
+        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
+        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        )
