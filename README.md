@@ -137,15 +137,19 @@ Once we completed the previous steps we can simply run `nix develop`, and it wil
 drop you into a shell with all the necessary tools. Once inside the environment,
 you can build the order bot with `cabal build all`.
 
-#### Orderbot Config
+### Orderbot Config
 
-To run the order bot, it is necessary to setup the provider and specify the bot options. You
-can execute the order bot using one of two possible providers: `Maestro` or `Blockfrost`. In order
-to function properly, each provider requires a specific `API-TOKEN` or `API-KEY` (that should be
-created on each official site). These must be entered into the appropriate provider configuration
-file, either [atlas-config-maestro.json](./config-files/atlas-config-maestro.json) or [atlas-config-blockfrost.json](./config-files/atlas-config-blockfrost.json).
-Here we must configure also the `networkId` to specify which Blockchain we want to use.
+To run the order bot, it is necessary to setup the provider and specify the bot options. There is one option for a completely local provider and two remote ones.
 
+#### Local Provider
+
+[Kupo](https://github.com/CardanoSolutions/kupo) can be used as a local provider. For this it is necessary to provide a path to a cardano node socket file and the Kupo url in the [atlas-config-kupo.json](./config-files/atlas-config-kupo.json) file.
+
+#### Remote Providers
+
+There are two possible remote providers: `Maestro` or `Blockfrost`. In order to function properly, each provider requires a specific `API-TOKEN` or `API-KEY` (that should be created on each official site). These must be entered into the appropriate provider configuration file, either [atlas-config-maestro.json](./config-files/atlas-config-maestro.json) or [atlas-config-blockfrost.json](./config-files/atlas-config-blockfrost.json).
+
+You must also configure the `networkId` to specify which Blockchain to use.
 Inside any of those configuration files, we can also configure the logging mechanisms, we can
 specify the log severity level with `Debug`, `Info`, `Warning`, but also the sinking of the information
 by choosing between a console log or a file. Besides different levels of verbosity. We even can
@@ -277,7 +281,7 @@ that is completely placed on the blockchain. That is the validator and minting p
 #### Running
 
 Once we compiled and configured the order bot, you can execute using the [Makefile](./Makefile):
-`make orderbot-maestro` or `make orderbot-blockfrost`.
+`make orderbot-maestro`, `make orderbot-blockfrost` or `make orderbot-kupo`.
 
 #### Testing
 
