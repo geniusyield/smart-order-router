@@ -1,6 +1,16 @@
 {
-	"coreProvider": { "socketPath": "<<CARDANO_NODE_SOCKET_PATH>>", "kupoUrl": "<<KUPO_URL>>" },
-	"networkId": "testnet-preprod",
-	"logging": [{ "type": { "tag": "stderr" }, "severity": "Info", "verbosity": "V2" }],
-    "utxoCacheEnable": false
+  "coreProvider": {
+    "socketPath": "<<CARDANO_NODE_SOCKET_PATH>>",
+    "kupoUrl": "<<KUPO_URL>>"
+  },
+  "networkId": "testnet-preprod",
+  "logging": [
+    {
+      "type": {
+        "tag": "stderr"
+      },
+      "severity": "Info",
+      "verbosity": "V2"
+    }
+  ]
 }

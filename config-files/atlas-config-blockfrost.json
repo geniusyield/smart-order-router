@@ -1,6 +1,15 @@
 {
-    "coreProvider": { "blockfrostKey" : "<<BLOCKFROST_API_KEY>>" },
-    "networkId": "testnet-preprod",
-    "logging": [{ "type": { "tag": "stderr" }, "severity": "Info", "verbosity": "V2" }],
-    "utxoCacheEnable": false
+  "coreProvider": {
+    "blockfrostKey": "<<BLOCKFROST_API_KEY>>"
+  },
+  "networkId": "testnet-preprod",
+  "logging": [
+    {
+      "type": {
+        "tag": "stderr"
+      },
+      "severity": "Info",
+      "verbosity": "V2"
+    }
+  ]
 }

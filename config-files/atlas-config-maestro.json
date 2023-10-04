@@ -1,6 +1,15 @@
 {
-    "coreProvider": { "maestroToken": "<<MAESTRO_TOKEN>>" },
-    "networkId": "testnet-preprod",
-    "logging": [{ "type": { "tag": "stderr" }, "severity": "Info", "verbosity": "V2" }],
-    "utxoCacheEnable": false
+  "coreProvider": {
+    "maestroToken": "<<MAESTRO_TOKEN>>"
+  },
+  "networkId": "testnet-preprod",
+  "logging": [
+    {
+      "type": {
+        "tag": "stderr"
+      },
+      "severity": "Info",
+      "verbosity": "V2"
+    }
+  ]
 }
