@@ -51,4 +51,14 @@ RUN cabal test
 RUN cabal install --global
 
 # =============================[ SMART ORDER ROUTER ]================================
-ENTRYPOINT [ "geniusyield-orderbot-exe", "run", "/SOR/config-files/${CONFIG_FILE:=atlas-config-maestro.json}" ]
+
+# Default values:
+ENV BOTC_FP_NFT_POLICY='compiled-scripts/minting-policy'
+ENV BOTC_FP_ORDER_VALIDATOR='compiled-scripts/partial-order'
+ENV BOTC_EXECUTION_STRAT='OneSellToManyBuy'
+ENV BOTC_RESCAN_DELAY='30000000'
+ENV BOTC_MAX_ORDERS_MATCHES='5'
+ENV BOTC_MAX_TXS_PER_ITERATION='4'
+ENV BOTC_RANDOMIZE_MATCHES_FOUND='True'
+
+ENTRYPOINT ["/bin/bash", "./start.sh"]
