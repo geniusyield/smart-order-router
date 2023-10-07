@@ -60,5 +60,7 @@ ENV BOTC_RESCAN_DELAY='30000000'
 ENV BOTC_MAX_ORDERS_MATCHES='5'
 ENV BOTC_MAX_TXS_PER_ITERATION='4'
 ENV BOTC_RANDOMIZE_MATCHES_FOUND='True'
+ENV BOTC_ASSET_FILTER='[{"commodityAsset":"c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53","currencyAsset":"lovelace"},{"commodityAsset":"0254a6ffa78edb03ea8933dbd4ca078758dbfc0fc6bb0d28b7a9c89f.4c454e4649","currencyAsset":"lovelace"},{"commodityAsset":"8cafc9b387c9f6519cacdce48a8448c062670c810d8da4b232e56313.6d4e5458","currencyAsset":"lovelace"},{"commodityAsset":"171163f05e4f30b6be3c22668c37978e7d508b84f83558e523133cdf.74454d50","currencyAsset":"lovelace"}]'
+ENV BOTC_POREFS='{"refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt","refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af","refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0","scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1","nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"}'
 
 ENTRYPOINT ["/bin/bash", "./start.sh"]
