@@ -128,7 +128,7 @@ using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 to
 
 A ready-to-run, containerized version of the Smart Order Router is availabe via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
 
-A Smart Order Router container instance usign the Maestro backend can be started by using the following snippet:
+A Smart Order Router container instance using the Maestro backend can be started by using the following snippet:
 
 ``` bash
 # SMART ORDER INSTANCE ROUTER USING MAESTRO
@@ -183,7 +183,7 @@ CARDANO_NETWORK=testnet-preprod
 docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
     -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
-    -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"$CARDANO_NODE_SOCKET_PATH\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"testnet-preprod\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
+    -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"$CARDANO_NODE_SOCKET_PATH\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
