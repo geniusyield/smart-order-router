@@ -51,6 +51,7 @@ RUN cabal test
 RUN cabal install --global
 
 # =============================[ SMART ORDER ROUTER ]================================
+LABEL org.opencontainers.image.source="https://github.com/geniusyield/smart-order-router"
 
 # Default values:
 ENV BOTC_FP_NFT_POLICY='compiled-scripts/minting-policy'

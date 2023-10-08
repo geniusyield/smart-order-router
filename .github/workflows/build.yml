@@ -25,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: ${{ github.ref == 'refs/heads/main'}}
-          tags: geniusyield/smart-order-router:latest
+          tags: ghcr.io/geniusyield/smart-order-router:latest
