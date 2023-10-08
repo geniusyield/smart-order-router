@@ -126,7 +126,25 @@ using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 to
 
 ### Docker
 
-:construction: Coming Soon :construction:
+A ready-to-run, containerized version of the Smart Order Router is availabe via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
+
+A Smart Order Router container instance can be started by using the following snippet:
+
+``` bash
+# Replace these values with your configuration:
+PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
+COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
+MAESTRO_API_KEY=some_api_key
+CARDANO_NETWORK=testnet-preprod
+
+docker run -it \
+    -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
+    -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
+    -e BOTC_CONFIG="{ \"coreProvider\": { \"maestroToken\": \"$MAESTRO_API_KEY\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }],\"utxoCacheEnable\": false }" \
+    ghcr.io/geniusyield/smart-order-router:latest
+```
+
+Please make sure to replace the placeholders with the actual values.
 
 ### Local build
 
