@@ -128,9 +128,11 @@ using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 to
 
 A ready-to-run, containerized version of the Smart Order Router is availabe via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
 
-A Smart Order Router container instance can be started by using the following snippet:
+A Smart Order Router container instance usign the Maestro backend can be started by using the following snippet:
 
 ``` bash
+# SMART ORDER INSTANCE ROUTER USING MAESTRO
+# =========================================
 # Replace these values with your configuration:
 PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
@@ -145,6 +147,46 @@ docker run -it \
 ```
 
 Please make sure to replace the placeholders with the actual values.
+
+Alternatively the Blockfrost or the Kupo backend could be used.
+
+This can be accomplished for Blockfrost by using the following commands:
+
+``` bash
+# SMART ORDER ROUTER INSTANCE USING BLOCKFROST
+# ============================================
+# Replace these values with your configuration:
+PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
+COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
+BLOCKFROST_API_KEY=some_api_key
+CARDANO_NETWORK=testnet-preprod
+
+docker run -it \
+    -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
+    -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
+    -e BOTC_CONFIG="{ \"coreProvider\": { \"blockfrostKey\": \"$BLOCKFROST_API_KEY\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }],\"utxoCacheEnable\": false }" \
+    ghcr.io/geniusyield/smart-order-router:latest
+```
+
+And the following commands can be used to start a Kupo backed instance:
+
+``` bash
+# SMART ORDER ROUTER INSTANCE USING KUPO
+# ======================================
+# Replace these values with your configuration:
+PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
+COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
+KUPO_URL=http://some.url.to.your.kupo.instance:1442
+CARDANO_NODE_SOCKET_PATH=/cardano/node/socket
+CARDANO_NETWORK=testnet-preprod
+
+docker run -it \
+    -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
+    -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
+    -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"$CARDANO_NODE_SOCKET_PATH\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"testnet-preprod\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
+    ghcr.io/geniusyield/smart-order-router:latest
+```
+
 
 ### Local build
 
