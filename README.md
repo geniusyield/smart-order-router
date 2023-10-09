@@ -187,6 +187,8 @@ docker run -it \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
+> [!NOTE]
+> :construction: Coming Soon: docker-compose :construction:
 
 ### Local build
 
