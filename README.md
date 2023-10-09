@@ -183,7 +183,8 @@ CARDANO_NETWORK=testnet-preprod
 docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
     -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
-    -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"$CARDANO_NODE_SOCKET_PATH\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
+    -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"/cardano/node/socket\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
+    -v $CARDANO_NODE_SOCKET_PATH:/cardano/node/socket
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
