@@ -19,6 +19,7 @@ module GeniusYield.DEX.Api.PartialOrder
     ) where
 
 import           Control.Monad.Except (ExceptT (..), runExceptT)
+import           Data.Maybe (fromJust)
 import qualified PlutusLedgerApi.V1 as Plutus
 import qualified PlutusLedgerApi.V1.Value as Plutus
 import qualified PlutusTx
@@ -48,19 +49,19 @@ data PartialOrderDatum = PartialOrderDatum
     -- ^ The asset being offered.
     , podOfferedOriginalAmount :: !Integer
     -- ^ Original number of units being offered. Initially, this would be same as `podOfferedAmount`.
-    ,  podOfferedAmount        :: !Integer
+    , podOfferedAmount        :: !Integer
     -- ^ The number of units being offered.
-    ,  podAskedAsset           :: !Plutus.AssetClass
+    , podAskedAsset           :: !Plutus.AssetClass
     -- ^ The asset being asked for as payment.
-    ,  podPrice                :: !PlutusTx.Rational
+    , podPrice                :: !PlutusTx.Rational
     -- ^ The price for one unit of the offered asset.
-    ,  podMinFilling           :: !Integer
+    , podMinFilling           :: !Integer
     -- ^ Minimal number of units of the offered asset that must be paid for in a partial filling.
-    ,  podNFT                  :: !Plutus.TokenName
+    , podNFT                  :: !Plutus.TokenName
     -- ^ Token name of the NFT identifying this order.
-    ,  podStart                :: !(Maybe Plutus.POSIXTime)
+    , podStart                :: !(Maybe Plutus.POSIXTime)
     -- ^ The time when the order can earliest be filled (optional).
-    ,  podEnd                  :: !(Maybe Plutus.POSIXTime)
+    , podEnd                  :: !(Maybe Plutus.POSIXTime)
     -- ^ The time when the order can latest be filled (optional).
     , podFee                   :: Integer
     -- ^ Fee the filler is entitled to take.
@@ -163,7 +164,8 @@ partialOrders pOrderPredicate = do
     DEXInfo {dexPartialOrderValidator} <- ask
 
     addr <- scriptAddress dexPartialOrderValidator
-    foldM mkPOrderInfo [] =<< utxosAtAddressesWithDatums [addr]
+    let paymentCredential = fromJust $ addressToPaymentCredential addr  -- `fromJust` would definitely not give an error as above is definitely a shelley address.
+    foldM mkPOrderInfo [] =<< utxosAtPaymentCredentialWithDatums paymentCredential
 
   where
     mkPOrderInfo

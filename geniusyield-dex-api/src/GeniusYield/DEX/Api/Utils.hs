@@ -14,27 +14,29 @@ module GeniusYield.DEX.Api.Utils
     , mintingPolicyFromPly
     ) where
 
-import           Control.Monad.Except ( ExceptT (..) )
-import           Data.Maybe           ( fromJust )
+import           Control.Monad.Except            (ExceptT (..))
+import           Data.Maybe                      (fromJust)
 
-import qualified PlutusLedgerApi.V1 as Plutus ( TokenName(..), TxOutRef(..)
-                                              , TxId(..), serialiseUPLC
-                                              )
-import qualified PlutusTx.Builtins as Plutus ( BuiltinByteString
-                                             , consByteString, sha2_256
-                                             )
+import qualified PlutusLedgerApi.V1              as Plutus (TokenName (..),
+                                                            TxId (..),
+                                                            TxOutRef (..),
+                                                            serialiseUPLC)
+import qualified PlutusTx.Builtins               as Plutus (BuiltinByteString,
+                                                            consByteString,
+                                                            sha2_256)
 
-import           Ply (ScriptRole (..), TypedScript (..))
+import           GeniusYield.Types               (GYMintingPolicy, GYTokenName,
+                                                  GYTxOutRef, GYValidator,
+                                                  SingPlutusVersion (..),
+                                                  mintingPolicyFromSerialisedScript,
+                                                  tokenNameFromPlutus,
+                                                  txOutRefToPlutus,
+                                                  validatorFromSerialisedScript)
+import           GeniusYield.Types.PlutusVersion (PlutusVersion (..),
+                                                  SingPlutusVersionI (singPlutusVersion))
+import           Ply                             (ScriptRole (..),
+                                                  TypedScript (..))
 import qualified Ply
-import           GeniusYield.Types ( SingPlutusVersion(..), GYValidator
-                                   , GYMintingPolicy, GYTxOutRef, GYTokenName
-                                   , tokenNameFromPlutus, txOutRefToPlutus
-                                   , validatorFromSerialisedScript
-                                   , mintingPolicyFromSerialisedScript
-                                   )
-import           GeniusYield.Types.PlutusVersion ( SingPlutusVersionI(singPlutusVersion)
-                                                 , PlutusVersion(..)
-                                                 )
 
 maybeToExceptT :: Functor m => e -> m (Maybe a) -> ExceptT e m a
 maybeToExceptT err m = ExceptT $ fmap (maybe (Left err) Right) m
