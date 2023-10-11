@@ -424,9 +424,12 @@ oneBuyToManySell :: Natural -> OrderBook -> [MatchResult]
 oneBuyToManySell _ _ = []
 ```
 
-Even more! We can go to the [Main](./geniusyield-orderbot/test/Main.hs) testing module,
-and add the new constructor `OneBuyToManySell` to ["Strategies tests" list](./geniusyield-orderbot/test/Main.hs#L25C9-L25C29)
-and it will be enough to start testing our strategy by running the tests.
+Even more! We can add the new constructor `OneBuyToManySell` to the `allStrategies` list and it will be enough to start testing our strategy by running the tests.
+
+```haskell
+allStrategies :: [BotStrategy]
+allStrategies = [OneSellToManyBuy]
+```
 
 Finishing the implementation of `oneBuyToManySell` is left as an exercise.
 

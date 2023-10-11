@@ -47,7 +47,7 @@ import           Cardano.Api ( AsType (AsSigningKey, AsPaymentKey)
                              , deserialiseFromTextEnvelope
                              )
 
-import           Strategies ( BotStrategy(..), mkIndependentStrategy )
+import           Strategies ( BotStrategy(..), allStrategies, mkIndependentStrategy )
 import           GeniusYield.DEX.Api.Types
 
 -- | Order bot vanilla config.
@@ -100,7 +100,7 @@ instance FromEnv OrderBotConfig where
         OrderBotConfig
         <$> (Right . parseCBORSKey <$> env "BOTC_SKEY")
         <*> (fmap fromString <$> envMaybe "BOTC_COLLATERAL")
-        <*> envWithMsg ("Invalid Strategy. Must be one of: [OneSellToManyBuy]") "BOTC_EXECUTION_STRAT"
+        <*> envWithMsg ("Invalid Strategy. Must be one of: " ++ show allStrategies) "BOTC_EXECUTION_STRAT"
         <*> (parseArray <$> env "BOTC_ASSET_FILTER")
         <*> envIntWithMsg "BOTC_RESCAN_DELAY"
         <*> env "BOTC_FP_NFT_POLICY"
