@@ -229,31 +229,28 @@ In addition, to configure the **bot**, it is necessary to edit the [bot-config.j
 file. The complete bot configuration looks like this:
 
 ```json
-{ "signingKeyFP": "bot.skey"
-, "collateral": "5b4fd2daa591e971b24e338275cc3c0710acadb6544a95930164c2c5c68a3a6c#0"
-
-, "nftMintingPolicyFP": "compiled-scripts/minting-policy"
-, "orderValidatorFP": "compiled-scripts/partial-order"
-, "validatorRefs":
-  { "refAddr": "addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt"
-  , "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af"
-  , "refNftUtxoRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  , "scriptRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1"
-  , "nftPolicyRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  }
-
-, "strategy": "OneSellToManyBuy"
-, "scanDelay": 40000000
-, "maxOrderMatches": 5
-, "maxTxsPerIteration" : 5
-, "randomizeMatchesFound": true
-
-, "scanTokens" :
-  [
-    { "commodityAsset" : "c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53"
-    , "currencyAsset" : "lovelace"
-    }
-  ]
+{
+   "signingKeyFP":"bot.skey",
+   "nftMintingPolicyFP":"compiled-scripts/minting-policy",
+   "orderValidatorFP":"compiled-scripts/partial-order",
+   "validatorRefs":{
+      "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
+      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
+      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
+      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
+      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+   },
+   "strategy":"OneSellToManyBuy",
+   "scanDelay":40000000,
+   "maxOrderMatches":5,
+   "maxTxsPerIteration":5,
+   "randomizeMatchesFound":true,
+   "scanTokens":[
+      {
+         "commodityAsset":"c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53",
+         "currencyAsset":"lovelace"
+      }
+   ]
 }
 ```
 - `signingKeyFP`, we need to specify the bot signing key, that must be placed
@@ -320,25 +317,29 @@ that is completely placed on the blockchain. That is the validator and minting p
 
 ##### Preprod
 ```json
-"validatorRefs":
-  { "refAddr": "addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt"
-  , "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af"
-  , "refNftUtxoRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  , "scriptRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1"
-  , "nftPolicyRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  }
+{
+   "validatorRefs":{
+      "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
+      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
+      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
+      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
+      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+   }
+}
 ```
 
 ##### Mainnet
 :construction: Coming Soon :construction:
 ```json
-"validatorRefs":
-  { "refAddr": ""
-  , "refNftAC": ""
-  , "refNftUtxoRef": ""
-  , "scriptRef": ""
-  , "nftPolicyRef": ""
-  }
+{
+   "validatorRefs":{
+      "refAddr":"",
+      "refNftAC":"",
+      "refNftUtxoRef":"",
+      "scriptRef":"",
+      "nftPolicyRef":""
+   }
+}
 ```
 
 #### Running
