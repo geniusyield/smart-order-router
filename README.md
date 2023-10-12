@@ -1,5 +1,8 @@
 <h1 align="center">Smart Order Router</h1>
 <p align="center">
+    <a href="https://github.com/geniusyield/smart-order-router/actions?query=branch%3Amain">
+      <img src="https://img.shields.io/github/actions/workflow/status/geniusyield/smart-order-router/build.yml?style=flat-square&branch=main&label=Build" />
+    </a>
     <a href="https://www.haskell.org/">
       <img alt="GitHub top language" src="https://img.shields.io/github/languages/top/geniusyield/smart-order-router">
     </a>
