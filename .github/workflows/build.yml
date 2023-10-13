@@ -26,3 +26,5 @@ jobs:
         with:
           push: ${{ github.ref == 'refs/heads/main'}}
           tags: ghcr.io/geniusyield/smart-order-router:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
