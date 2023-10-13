@@ -5,6 +5,8 @@ License     : Apache 2.0
 Maintainer  : support@geniusyield.co
 Stability   : develop
 
+Dummy change to test CI.
+
 -}
 module Strategies
     ( BotStrategy(..)
