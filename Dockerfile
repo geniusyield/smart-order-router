@@ -43,9 +43,17 @@ ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
 # ==================================[ BUILD ]========================================
 WORKDIR /SOR
 
-COPY . .
+RUN cabal update
+COPY cabal.project ./
+COPY geniusyield-orderbot.cabal ./
+COPY geniusyield-dex-api/geniusyield-dex-api.cabal ./geniusyield-dex-api/
+COPY geniusyield-orderbot-framework/geniusyield-orderbot-framework.cabal geniusyield-orderbot-framework/
 
 RUN cabal update
+RUN cabal build geniusyield-dex-api --only-dependencies
+
+COPY . .
+
 RUN cabal build all
 RUN cabal test
 RUN cabal install --global
