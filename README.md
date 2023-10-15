@@ -272,7 +272,7 @@ file. The complete bot configuration looks like this:
   - `"nftPolicyRef"`, an optional parameter for the script reference of the partial
     orders NFT. This UTxO has to have the partial order NFT minting policy as a script ref.
 - `strategy`, currently the SOR supports one possible strategy: OneSellToManyBuy.
-- `scanDelay`, the duration of time we wait before re-initiating a complete iteration for the bot.
+- `scanDelay`, the duration of time in µs we wait before re-initiating a complete iteration for the bot.
 - `maxOrderMatches`, is the maximum amount of orders to be matched into a single transaction.
   8 orders is near the limit that will fit into a transaction.
 - `maxTxsPerIteration`, is the maximum amount of transactions that the bot will build,
