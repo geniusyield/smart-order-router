@@ -149,7 +149,7 @@ runOrderBot
             , "  Collateral: "            ++ show botCollateral
             , "  Reference Script ref: "  ++ show (porValidatorRef por)
             , "  Reference Minting ref: " ++ show (porNftPolicyRef por)
-            , "  Scan delay (ms): "       ++ show botRescanDelay
+            , "  Scan delay (µs): "       ++ show botRescanDelay
             , "  Token Pairs to scan:"
             , unlines (map (("\t - " ++) . show) botAssetPairFilter)
             , ""
