@@ -171,11 +171,11 @@ docker run -it \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
-And the following commands can be used to start a Kupo backed instance:
+And the following commands can be used to start a Kupo backed instance, if you want to use an existing Kupo instance:
 
 ``` bash
-# SMART ORDER ROUTER INSTANCE USING KUPO
-# ======================================
+# SMART ORDER ROUTER INSTANCE USING KUPO (existing Kupo instance)
+# ===============================================================
 # Replace these values with your configuration:
 PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
@@ -187,12 +187,20 @@ docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
     -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
     -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"/cardano/node/socket\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
-    -v $CARDANO_NODE_SOCKET_PATH:/cardano/node/socket
+    -v $CARDANO_NODE_SOCKET_PATH:/cardano/node/socket \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
-> [!NOTE]
-> :construction: Coming Soon: docker-compose :construction:
+or alternatively you could use docker-compose to start a Cardano node, a Kupo instance and a Smart Order Router instance using the created Kupo instance:
+
+``` bash
+# SMART ORDER ROUTER INSTANCE USING KUPO (docker-compose)
+# =======================================================
+# Replace these values with your configuration:
+PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134 \
+COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1 \
+docker compose up
+```
 
 ### Local build
 
