@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  sor:
+    image: ghcr.io/geniusyield/smart-order-router:latest
+    container_name: sor
+    environment:
+      BOTC_SKEY: |
+         {"cborHex": "$PAYMENT_SIGNING_KEY_CBOR_HEX", "type": "PaymentSigningKeyShelley_ed25519", "description": "Payment Signing Key"}
+      BOTC_COLLATERAL: "$COLLATERAL_UTXO_REF"
+      BOTC_CONFIG: |
+         {"coreProvider": { "socketPath": "/ipc/node.socket", "kupoUrl": "kupo:1442" }, "networkId": "testnet-preprod", "logging": [{ "type": { "tag": "stderr" }, "severity": "Info", "verbosity": "V2" }]}
+    restart: always
+    volumes: [node-ipc:/ipc]
+    depends_on:
+      kupo: { condition: service_healthy }
+      node: { condition: service_healthy }
+  kupo:
+    image: cardanosolutions/kupo
+    container_name: kupo
+    volumes: [node-ipc:/ipc, ./cardano-configurations/network/preprod:/network/preprod]
+    ports: ['1442:1442']
+    depends_on: { node: { condition: service_healthy } }
+    command: [
+     --node-socket, /ipc/node.socket,
+     --since, origin,
+     --match, "*",
+     --host, "0.0.0.0",
+     --node-config, /network/preprod/cardano-node/config.json,
+     --in-memory,
+     --prune-utxo,
+    ]
+    healthcheck:
+        test: ["CMD", "/bin/kupo", "health-check"]
+        interval: 30s
+        timeout: 10s
+        retries: 100
+  node:
+    image: inputoutput/cardano-node
+    container_name: node
+    environment: [NETWORK=preprod]
+    volumes: [node-db:/data/db, node-ipc:/ipc]
+    healthcheck:
+        test: ["CMD", "test", "-S", "/ipc/node.socket"]
+        interval: 30s
+        timeout: 10s
+        retries: 100
+volumes:
+  node-db: null
+  node-ipc: null

@@ -1,5 +1,8 @@
 <h1 align="center">Smart Order Router</h1>
 <p align="center">
+    <a href="https://github.com/geniusyield/smart-order-router/actions?query=branch%3Amain">
+      <img src="https://img.shields.io/github/actions/workflow/status/geniusyield/smart-order-router/build.yml?style=flat-square&branch=main&label=Build" />
+    </a>
     <a href="https://www.haskell.org/">
       <img alt="GitHub top language" src="https://img.shields.io/github/languages/top/geniusyield/smart-order-router">
     </a>
@@ -168,11 +171,11 @@ docker run -it \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
-And the following commands can be used to start a Kupo backed instance:
+And the following commands can be used to start a Kupo backed instance, if you want to use an existing Kupo instance:
 
 ``` bash
-# SMART ORDER ROUTER INSTANCE USING KUPO
-# ======================================
+# SMART ORDER ROUTER INSTANCE USING KUPO (existing Kupo instance)
+# ===============================================================
 # Replace these values with your configuration:
 PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
@@ -184,12 +187,20 @@ docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
     -e BOTC_COLLATERAL="$COLLATERAL_UTXO_REF" \
     -e BOTC_CONFIG="{\"coreProvider\": { \"socketPath\": \"/cardano/node/socket\", \"kupoUrl\": \"$KUPO_URL\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }], \"utxoCacheEnable\": false }" \
-    -v $CARDANO_NODE_SOCKET_PATH:/cardano/node/socket
+    -v $CARDANO_NODE_SOCKET_PATH:/cardano/node/socket \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
-> [!NOTE]
-> :construction: Coming Soon: docker-compose :construction:
+or alternatively you could use docker-compose to start a Cardano node, a Kupo instance and a Smart Order Router instance using the created Kupo instance:
+
+``` bash
+# SMART ORDER ROUTER INSTANCE USING KUPO (docker-compose)
+# =======================================================
+# Replace these values with your configuration:
+PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134 \
+COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1 \
+docker compose up
+```
 
 ### Local build
 
@@ -229,31 +240,28 @@ In addition, to configure the **bot**, it is necessary to edit the [bot-config.j
 file. The complete bot configuration looks like this:
 
 ```json
-{ "signingKeyFP": "bot.skey"
-, "collateral": "5b4fd2daa591e971b24e338275cc3c0710acadb6544a95930164c2c5c68a3a6c#0"
-
-, "nftMintingPolicyFP": "compiled-scripts/minting-policy"
-, "orderValidatorFP": "compiled-scripts/partial-order"
-, "validatorRefs":
-  { "refAddr": "addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt"
-  , "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af"
-  , "refNftUtxoRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  , "scriptRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1"
-  , "nftPolicyRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  }
-
-, "strategy": "OneSellToManyBuy"
-, "scanDelay": 40000000
-, "maxOrderMatches": 5
-, "maxTxsPerIteration" : 5
-, "randomizeMatchesFound": true
-
-, "scanTokens" :
-  [
-    { "commodityAsset" : "c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53"
-    , "currencyAsset" : "lovelace"
-    }
-  ]
+{
+   "signingKeyFP":"bot.skey",
+   "nftMintingPolicyFP":"compiled-scripts/minting-policy",
+   "orderValidatorFP":"compiled-scripts/partial-order",
+   "validatorRefs":{
+      "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
+      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
+      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
+      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
+      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+   },
+   "strategy":"OneSellToManyBuy",
+   "scanDelay":40000000,
+   "maxOrderMatches":5,
+   "maxTxsPerIteration":5,
+   "randomizeMatchesFound":true,
+   "scanTokens":[
+      {
+         "commodityAsset":"c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53",
+         "currencyAsset":"lovelace"
+      }
+   ]
 }
 ```
 - `signingKeyFP`, we need to specify the bot signing key, that must be placed
@@ -272,7 +280,7 @@ file. The complete bot configuration looks like this:
   - `"nftPolicyRef"`, an optional parameter for the script reference of the partial
     orders NFT. This UTxO has to have the partial order NFT minting policy as a script ref.
 - `strategy`, currently the SOR supports one possible strategy: OneSellToManyBuy.
-- `scanDelay`, the duration of time we wait before re-initiating a complete iteration for the bot.
+- `scanDelay`, the duration of time in µs we wait before re-initiating a complete iteration for the bot.
 - `maxOrderMatches`, is the maximum amount of orders to be matched into a single transaction.
   8 orders is near the limit that will fit into a transaction.
 - `maxTxsPerIteration`, is the maximum amount of transactions that the bot will build,
@@ -320,25 +328,29 @@ that is completely placed on the blockchain. That is the validator and minting p
 
 ##### Preprod
 ```json
-"validatorRefs":
-  { "refAddr": "addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt"
-  , "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af"
-  , "refNftUtxoRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  , "scriptRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1"
-  , "nftPolicyRef": "39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
-  }
+{
+   "validatorRefs":{
+      "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
+      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
+      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
+      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
+      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+   }
+}
 ```
 
 ##### Mainnet
 :construction: Coming Soon :construction:
 ```json
-"validatorRefs":
-  { "refAddr": ""
-  , "refNftAC": ""
-  , "refNftUtxoRef": ""
-  , "scriptRef": ""
-  , "nftPolicyRef": ""
-  }
+{
+   "validatorRefs":{
+      "refAddr":"",
+      "refNftAC":"",
+      "refNftUtxoRef":"",
+      "scriptRef":"",
+      "nftPolicyRef":""
+   }
+}
 ```
 
 #### Running
