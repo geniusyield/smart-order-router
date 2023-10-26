@@ -128,7 +128,8 @@ using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 to
 ## Building and running
 
 > [!NOTE]
-> The Genius Yield DEX is in the public testnet phase at the moment. The smart contracts are not yet deployed to the Cardano Mainnet.
+> The Genius Yield DEX is in the public testnet phase at the moment.
+>
 > In order to run Smart Order Router instances for the public testnet, please use the preprod testnet as in the examples below.
 
 ### Docker
