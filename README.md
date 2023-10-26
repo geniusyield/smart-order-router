@@ -346,10 +346,8 @@ that is completely placed on the blockchain. That is the validator and minting p
 
 ##### Mainnet
 
-> :construction: Coming Soon :construction:
-
 > [!NOTE]
-> The Cardano Mainnet launch is coming soon. The Smart Order Router configuration for the Cardano Mainnet is going to be availble as we approach the Mainnet launch date.
+> The Smart Order configuration for the Cardano Mainnet is going to be availble as we approach the Mainnet launch date.
 
 ```json
 {
