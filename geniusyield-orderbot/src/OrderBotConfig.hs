@@ -11,6 +11,7 @@ module OrderBotConfig where
 import           Control.Exception ( throwIO )
 import           Control.Monad ( (<=<) )
 import           Control.Monad.Reader ( runReaderT )
+import           Control.Monad.Error.Class ( throwError )
 import           Data.Aeson ( eitherDecodeFileStrict
                             , (.:), (.:?)
                             , withArray, withObject
@@ -26,7 +27,9 @@ import qualified Data.Vector as V
 import           Data.List ( nub )
 import           GHC.Generics ( Generic )
 import           GHC.Natural ( naturalToInteger )
-import           System.Envy ( FromEnv (fromEnv), envMaybe, env, decodeEnv )
+import           System.Envy ( FromEnv (fromEnv), Var, Parser, envMaybe, env
+                             , decodeEnv
+                             )
 import           System.Random.MWC (fromSeed, initialize, createSystemSeed)
 
 import           Ply (readTypedScript, TypedScript, ScriptRole (..))
@@ -44,7 +47,7 @@ import           Cardano.Api ( AsType (AsSigningKey, AsPaymentKey)
                              , deserialiseFromTextEnvelope
                              )
 
-import           Strategies ( BotStrategy(..), mkIndependentStrategy )
+import           Strategies ( BotStrategy(..), allStrategies, mkIndependentStrategy )
 import           GeniusYield.DEX.Api.Types
 
 -- | Order bot vanilla config.
@@ -97,29 +100,36 @@ instance FromEnv OrderBotConfig where
         OrderBotConfig
         <$> (Right . parseCBORSKey <$> env "BOTC_SKEY")
         <*> (fmap fromString <$> envMaybe "BOTC_COLLATERAL")
-        <*> env "BOTC_EXECUTION_STRAT"
+        <*> envWithMsg ("Invalid Strategy. Must be one of: " ++ show allStrategies) "BOTC_EXECUTION_STRAT"
         <*> (parseArray <$> env "BOTC_ASSET_FILTER")
-        <*> env "BOTC_RESCAN_DELAY"
+        <*> envIntWithMsg "BOTC_RESCAN_DELAY"
         <*> env "BOTC_FP_NFT_POLICY"
         <*> env "BOTC_FP_ORDER_VALIDATOR"
-        <*> env "BOTC_MAX_ORDERS_MATCHES"
-        <*> env "BOTC_MAX_TXS_PER_ITERATION"
-        <*> env "BOTC_RANDOMIZE_MATCHES_FOUND"
+        <*> envIntWithMsg "BOTC_MAX_ORDERS_MATCHES"
+        <*> envIntWithMsg "BOTC_MAX_TXS_PER_ITERATION"
+        <*> envWithMsg "Must be either 'True' or 'False'" "BOTC_RANDOMIZE_MATCHES_FOUND"
         <*> (parsePORDict <$> env "BOTC_POREFS")
       where
         parseCBORSKey :: String -> GYPaymentSigningKey
         parseCBORSKey s =
-            either error paymentSigningKeyFromApi $
+            either (error . ("Error parsing 'BOTC_SKEY': " ++)) paymentSigningKeyFromApi $
             eitherDecodeStrict (fromString s) >>=
             first show . deserialiseFromTextEnvelope (AsSigningKey AsPaymentKey)
 
         parsePORDict :: String -> PORConfig
-        parsePORDict = either error id . eitherDecodeStrict . fromString
+        parsePORDict = either (error . ("Error parsing 'BOTC_POREFS': " ++)) id
+                        . eitherDecodeStrict . fromString
 
         parseArray :: String -> [OrderAssetPair]
-        parseArray s = either error id $
+        parseArray s = either (error . ("Error parsing 'BOTC_ASSET_FILTER': " ++) ) id $
             eitherDecodeStrict (fromString s) >>=
             Aeson.parseEither parseScanTokenPairs
+
+envIntWithMsg :: Var a => String -> Parser a
+envIntWithMsg = envWithMsg "Not a number"
+
+envWithMsg :: Var a => String -> String -> Parser a
+envWithMsg msg name = maybe (throwError $ unwords ["Error parsing enviroment variable", name ++ ":", msg]) return =<< envMaybe name
 
 instance FromJSON OrderBotConfig where
     parseJSON (Object obj) = OrderBotConfig

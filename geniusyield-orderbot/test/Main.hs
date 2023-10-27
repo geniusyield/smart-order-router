@@ -18,11 +18,7 @@ main =  defaultMain $ testGroup "QC"
         , testProperty "sellsAreInOrder" propSellsAreInOrder
         , testProperty "buysAreInOrder" propBuysAreInOrder
         ]
-    , testGroup "Strategies tests" $ map qcTestsForStrategy
-        -- Every strategy property is ran over each element of this list. So adding
-        -- a new BotStrategy constructor to the list is enough to include the new
-        -- strategy into the complete tests suit.
-        [ OneSellToManyBuy ]
+    , testGroup "Strategies tests" $ map qcTestsForStrategy allStrategies
     ]
 
 qcTestsForStrategy :: BotStrategy -> TestTree

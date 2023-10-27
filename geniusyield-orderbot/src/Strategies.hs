@@ -8,6 +8,7 @@ Stability   : develop
 -}
 module Strategies
     ( BotStrategy(..)
+    , allStrategies
     , mkIndependentStrategy
     ) where
 
@@ -49,6 +50,12 @@ instance Var BotStrategy where
         "OneSellToManyBuy" -> Just OneSellToManyBuy
         _                  -> Nothing
     toVar = show
+
+{- | A list containing all implemented strategies. This list is used for the
+     tests and for the error message during env variable parsing.
+-}
+allStrategies :: [BotStrategy]
+allStrategies = [OneSellToManyBuy]
 
 {- | Given a bot strategy and a max amount of orders per transaction, creates
      an independent strategy.
