@@ -25,6 +25,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: ${{ github.ref == 'refs/heads/main'}}
-          tags: ghcr.io/geniusyield/smart-order-router:latest
+          tags: ghcr.io/${{ github.repository }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
