@@ -46,6 +46,11 @@ only sell and buy orders for the same pair of tokens. The bot runs the selected 
 over the multi-asset order book to obtain a list of matches. The matches are then
 translated into transactions that will be signed and submitted by the bot.
 
+Due to the open and decentralized design of the protocol, anybody can run a Smart Order
+Router instance and collect a share of the fees, thus running a Smart Order Router instance
+is not only contributiung to the further decentralization of the protocol, but it is also incentivized
+financially.
+
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
 Let's start with a concrete and short overview of the GY DEX Orders, to provide some context,
