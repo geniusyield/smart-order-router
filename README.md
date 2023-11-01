@@ -68,7 +68,7 @@ related to the one that created it. For example, we could create an order offeri
 with a unit price of `2 tokenB`, that is, we expect to receive `2 tokenB` per `1 tokenA`. Also, we
 want the minimal amount to be bought be `5 tokenA`. Clearly, the owners of this order will be
 the creator, who placed the order, and it's important to keep in mind that all this information
-is **mandatory**, excluding the lifetime of the order, which is optional, meaning the order won't
+is **mandatory**, excluding the lifetime of the order, which is optional, meaning, when it is missing, the order won't
 expire and it is going to be be available for an unlimited time. Once we create an order, the offered
 tokens will be locked in the order, until it is filled or cancelled.
 
