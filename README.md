@@ -483,7 +483,7 @@ allStrategies :: [BotStrategy]
 allStrategies = [OneSellToManyBuy, OneBuyToManySell]
 ```
 
-Finishing the dummy implementation of `oneBuyToManySell` with the actualy logic is left as a coding exercise for the reader.
+Finishing the dummy implementation of `oneBuyToManySell` with the actual logic is left as an optional coding exercise for the reader.
 
 <details>
   <summary>Hint</summary>
