@@ -33,13 +33,13 @@
 
 ## Overview
 
-Smart Order Routers (SORs) are an important part of the [Genius Yield Decentralized Exchange](https://www.geniusyield.co/).
+Smart Order Routers play a crutial role in the operation of the [Genius Yield Decentralized Exchange](https://www.geniusyield.co/).
 
-SORs are off-chain agents that execute a routing algorithm that scans the Cardano blockchain
-for open limit orders, matches them based on their trigger conditions, and submits
-new transactions back to the ledger to perform the swap state transitions. Each Smart
-Swap encodes trigger conditions that the SOR must fulfill to execute the swap. The SOR
-continuously scans and analyzes the current state of the limit orders and relies on
+Smart Order Routers (SORs) are off-chain agents that execute a routing algorithm that scans 
+the Cardano blockchain for open limit orders, matches them based on their trigger conditions,
+and submits new transactions back to the ledger to perform the swap state transitions.
+Each Smart Swap encodes trigger conditions that the SOR must fulfill to execute the swap.
+The SOR continuously scans and analyzes the current state of the limit orders and relies on
 the configured matching strategy to best execute a customer’s order based on price.
 
 Specifically, the bot periodically builds a multi-asset order book consisting of one
@@ -50,8 +50,8 @@ translated into transactions that will be signed and submitted by the bot.
 
 Due to the open and decentralized design of the protocol, anybody can run a Smart Order
 Router instance and collect a share of the fees, thus running a Smart Order Router instance
-is not only contributiung to the further decentralization of the protocol, but it is also incentivized
-financially.
+is not only contributiung to the further decentralization of the protocol, but it is also
+incentivized financially.
 
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
@@ -62,29 +62,31 @@ benefit from customizing existing strategies or even implementing novel strategi
 For a more detailed description, please see the [Genius Yield Whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
 
 Given a pair of tokens, an order will contain the number of tokens it offers, the price
-of one unit of those offered, and the minimal amount we are forced to buy from the order.
-Besides that, the order will have some life timeline and, of course, a notion of ownership
+of one unit of those offered, and the minimal amount that must be bought from the order.
+Besides that, the order will have optionally a lifetime and, of course, a notion of ownership
 related to the one that created it. For example, we could create an order offering of `10 tokenA`,
 with a unit price of `2 tokenB`, that is, we expect to receive `2 tokenB` per `1 tokenA`. Also, we
 want the minimal amount to be bought be `5 tokenA`. Clearly, the owners of this order will be
-us and it's important to mention that all this information is **mandatory**, but we can avoid setting
-the life timeline, meaning the order will always be available. Once we create an order, the offered
-tokens will be locked on the order.
+the creator, who placed the order, and it's important to keep in mind that all this information
+is **mandatory**, excluding the lifetime of the order, which is optional, meaning the order won't
+expire and it is going to be be available for an unlimited time. Once we create an order, the offered
+tokens will be locked in the order, until it is filled or cancelled.
 
-Given an order, two interesting "actions" can be performed over it. The owner can cancel
-it and get back the locked tokens. Or anyone can _fill_ it, filling an order is just paying
+Given an specific order, two interesting "actions" might be performed on it. The owner can cancel
+it and get back the previously locked tokens. Or anyone can _fill_ it, filling an order is just paying
 the correct amount of tokens the owner of the order expects to receive related to the
 amount of tokens we want to buy from that order. Following the previous example, anyone
 could fill that order by buying from it `6 tokenA` and paying the owner `12 tokenB`. But, it
 isn't possible to buy, for instance, `3 tokenA` from the order because the minimal amount
-was setup to `5`, except the amount of offered tokens is less than that.
+was setup to `5`, except the amount of offered tokens is less than that. This makes sure that no tokens get
+stuck in the contract, even if the number is lower then the minimal fill amount.
 
-One important thing to mention that is transparent for any end user, is that there are
-two kinds of fills: _complete_ and _partial_. A complete fill will buy all the offered
-tokens from the order, and for the partial fill, we need to specify the amount we want
-to buy from the order. For us, that will be running and probably improving this implementation
-is relevant because, as we will see in a moment, we can design different matching strategies
-using these two different fills.
+One important thing to mention, that is actually completely transparent for the end user,
+is that there are two kinds of fills: _complete_ and _partial_. A complete fill will buy all 
+the offered tokens from the order, and for the partial fill, we need to specify the amount we want
+to buy from the order. For those of us, who will be not only running an SOR instance, but probably even improve the
+matching strategy implementation, this is highly relevant since, as we will see in a moment,
+it is possible to design different matching strategies using these two different type of fills.
 
 Up to this point, we quickly covered the key actions that can be performed over the orders.
 There shouldn't be any surprise if we mention that each action is performed by a transaction.
@@ -113,17 +115,17 @@ Using the previous example we could have two cases:
 <tr><th> Commodity A | Currency B </th><th> Commodity B | Currency A </th></tr>
 <tr><td>
 
-|  Amount   |    Price   |  Type |
-|:-----------:|:-----------:|:------:|
-| `10 tokenA` |  `2 tokenB`   | Sell  |
-| `8 tokenA`  |  `2.5 tokenB` | Buy   |
+|  Amount     |    Price      |  Type  |
+|:-----------:|:-------------:|:------:|
+| `10 tokenA` |  `2 tokenB`   | Sell   |
+| `8 tokenA`  |  `2.5 tokenB` | Buy    |
 
 </td><td>
 
-|  Amount   |    Price   |  Type |
-|:-----------:|:-----------:|:------:|
-| `20 tokenB` |  `0.4 tokenA`  | Sell  |
-| `20 tokenB`  |  `0.5 tokenA` | Buy   |
+|  Amount     |    Price       |  Type  |
+|:-----------:|:--------------:|:------:|
+| `20 tokenB` |  `0.4 tokenA`  | Sell   |
+| `20 tokenB` |  `0.5 tokenA`  | Buy    |
 
 </td></tr>
 </table>
@@ -134,14 +136,14 @@ the buy order, earning `3 tokenB`. However, if we want our earnings to be in `to
 commodity must be `tokenB`. So we can buy from the sell order, `18 tokenB` using `7 tokenA`, then
 using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 tokenA`.
 
-## Building and running
+## Building and running the Smart Order Router
 
 > [!NOTE]
 > The Genius Yield DEX is in the public testnet phase at the moment.
 >
 > In order to run Smart Order Router instances for the public testnet, please use the preprod testnet as in the examples below.
 
-### Docker
+### Running the SOR using Docker
 
 A ready-to-run, containerized version of the Smart Order Router is availabe via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
 
@@ -216,7 +218,25 @@ COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12
 docker compose up
 ```
 
-### Local build
+### Building the SOR using docker
+
+The SOR can be built using docker.
+
+Simply cloning the repository and building the docker image should be sufficient, so no Haskell tooling, like GHC or Cabal must be installed locally.
+
+All of these tools necessary for building the SOR are available in the build stage of the [Dockerfile](https://github.com/geniusyield/smart-order-router/blob/main/Dockerfile).
+
+```bash
+git clone https://github.com/geniusyield/smart-order-router.git
+cd smart-order-router
+docker build .
+```
+
+Smaller changes to the logic might be possible using the the docker based build, but if bigger changes are necessary, you might want to build the SOR locally on you workstation directly.
+
+In the next chapter you can find detailed step-by-step description about this.
+
+### Locally building the SOR
 
 First, you need to setup the necessary tooling to work with [haskell.nix](https://github.com/input-output-hk/haskell.nix).
 A complete guide and troubleshooting of how to install and configure `nix` can be
