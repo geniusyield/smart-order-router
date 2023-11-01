@@ -56,8 +56,8 @@ incentivized financially.
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
 Let's start with a concrete and short overview of the GY DEX Orders, to provide some context,
-so the reader could later understand the purpose of the Smart Order Routers and how they could
-benefit from customizing existing strategies or even implementing novel strategies for matching orders.
+so the reader could better understand the purpose of the Smart Order Routers and how they could
+benefit from customizing existing order matching strategies or even implementing completely new strategies from scratch.
 
 For a more detailed description, please see the [Genius Yield Whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
 
