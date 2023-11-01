@@ -48,9 +48,11 @@ translated into transactions that will be signed and submitted by the bot.
 
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
-Let's start with a concrete and short overview of the GY DEX Orders, so the context
-of the SOR for using, modifying, and improving with new custom strategies is properly
-established. A complete description can be found in the [GY whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
+Let's start with a concrete and short overview of the GY DEX Orders, to provide some context,
+so the reader could later understand the purpose of the Smart Order Routers and how they could
+benefit from customizing existing strategies or even implementing novel strategies for matching orders.
+
+For a more detailed description, please see the [Genius Yield Whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
 
 Given a pair of tokens, an order will contain the number of tokens it offers, the price
 of one unit of those offered, and the minimal amount we are forced to buy from the order.
