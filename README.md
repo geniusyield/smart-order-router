@@ -39,7 +39,7 @@ Smart Order Routers (SORs) are off-chain agents that execute a routing algorithm
 the Cardano blockchain for open limit orders, matches them based on their trigger conditions,
 and submits new transactions back to the ledger to perform the swap state transitions.
 Each Smart Swap encodes trigger conditions that the SOR must fulfill to execute the swap.
-The SOR continuously scans and analyzes the current state of the limit orders and relies on
+The SOR continuously scans and analyzes the current state of the limit orders on-chain and relies on
 the configured matching strategy to best execute a customer’s order based on price.
 
 Specifically, the bot periodically builds a multi-asset order book consisting of one
