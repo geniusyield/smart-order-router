@@ -46,7 +46,7 @@ only sell and buy orders for the same pair of tokens. The bot runs the selected 
 over the multi-asset order book to obtain a list of matches. The matches are then
 translated into transactions that will be signed and submitted by the bot.
 
-## Crash Course GeniusYield DEX Orders <> SOR
+## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
 Let's start with a concrete and short overview of the GY DEX Orders, so the context
 of the SOR for using, modifying, and improving with new custom strategies is properly
