@@ -33,7 +33,9 @@
 
 ## Overview
 
-SORs are off-chain bots that execute a routing algorithm that scans the blockchain
+Smart Order Routers (SORs) are an important part of the [Genius Yield Decentralized Exchange](https://www.geniusyield.co/).
+
+SORs are off-chain agents that execute a routing algorithm that scans the Cardano blockchain
 for open limit orders, matches them based on their trigger conditions, and submits
 new transactions back to the ledger to perform the swap state transitions. Each Smart
 Swap encodes trigger conditions that the SOR must fulfill to execute the swap. The SOR
