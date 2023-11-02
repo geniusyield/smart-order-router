@@ -264,5 +264,5 @@ getDexInfo OrderBotConfig{ botCFPNftPolicy
     readNftPolicy = readTypedScript botCFPNftPolicy
 
     readOrderValidator
-        :: IO (TypedScript 'ValidatorRole '[Address, AssetClass, Integer])
+        :: IO (TypedScript 'ValidatorRole '[Address, AssetClass])
     readOrderValidator = readTypedScript botCFPOrderValidator

@@ -336,10 +336,10 @@ that is completely placed on the blockchain. That is the validator and minting p
 {
    "validatorRefs":{
       "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
-      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
-      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
-      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
-      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.6af3807634905a04be64a8dbe0ddb9da6ce52eed23cb428c7be5d6114eacc189",
+      "refNftUtxoRef":"aaaae7e568aab31db6f74faaf550867d58b2361868324567470862ecaaac7646#0",
+      "scriptRef":"aaaae7e568aab31db6f74faaf550867d58b2361868324567470862ecaaac7646#1",
+      "nftPolicyRef":"aaaae7e568aab31db6f74faaf550867d58b2361868324567470862ecaaac7646#0"
    }
 }
 ```

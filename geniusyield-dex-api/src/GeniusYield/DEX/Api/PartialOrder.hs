@@ -48,28 +48,24 @@ data PartialOrderDatum = PartialOrderDatum
     -- ^ The asset being offered.
     , podOfferedOriginalAmount :: !Integer
     -- ^ Original number of units being offered. Initially, this would be same as `podOfferedAmount`.
-    ,  podOfferedAmount        :: !Integer
+    , podOfferedAmount         :: !Integer
     -- ^ The number of units being offered.
-    ,  podAskedAsset           :: !Plutus.AssetClass
+    , podAskedAsset            :: !Plutus.AssetClass
     -- ^ The asset being asked for as payment.
-    ,  podPrice                :: !PlutusTx.Rational
+    , podPrice                 :: !PlutusTx.Rational
     -- ^ The price for one unit of the offered asset.
-    ,  podMinFilling           :: !Integer
-    -- ^ Minimal number of units of the offered asset that must be paid for in a partial filling.
-    ,  podNFT                  :: !Plutus.TokenName
+    , podNFT                   :: !Plutus.TokenName
     -- ^ Token name of the NFT identifying this order.
-    ,  podStart                :: !(Maybe Plutus.POSIXTime)
+    , podStart                 :: !(Maybe Plutus.POSIXTime)
     -- ^ The time when the order can earliest be filled (optional).
-    ,  podEnd                  :: !(Maybe Plutus.POSIXTime)
+    , podEnd                   :: !(Maybe Plutus.POSIXTime)
     -- ^ The time when the order can latest be filled (optional).
-    , podFee                   :: Integer
-    -- ^ Fee the filler is entitled to take.
-    , podPartialFills          :: Integer
+    , podPartialFills          :: !Integer
     -- ^ Number of partial fills order has undergone, initially would be 0.
     }
     deriving stock (Show)
 
-PlutusTx.makeIsDataIndexed ''PartialOrderDatum [ ('PartialOrderDatum, 0) ]
+PlutusTx.makeIsDataIndexed ''PartialOrderDatum [('PartialOrderDatum, 0)]
 
 -- | Exceptions raised while (partially) filling (partial) orders.
 data FillOrderException
@@ -83,16 +79,15 @@ data FillOrderException
 data PodException = PodNftNotAvailable
                   | PodNonPositiveAmount !Integer
                   | PodNonPositivePrice !GYRational
-                  | PodNonPositiveMinFilling !Integer
                   | PodRequestedAmountGreaterOrEqualToOfferedAmount
                     { poeReqAmt:: !Natural
                     , poeOfferedAmount :: !Natural
                     }
-                  | PodRequestedAmountLessThanMinFilling
-                    { poeReqAmt:: !Natural
-                    , poeMinFilling :: !Natural
-                    }
-                  | PodFeeNotEnough !Integer
+                  | PodNonDifferentAssets !GYAssetClass
+                    -- ^ Offered asset is same as asked asset.
+                  | PodEndEarlierThanStart
+                      !GYTime  -- ^ Start time.
+                      !GYTime  -- ^ End time.
     deriving stock Show
     deriving anyclass (Exception, IsGYApiError)
 
@@ -132,20 +127,18 @@ data PartialOrderInfo = PartialOrderInfo
     -- ^ The asset being asked for as payment.
     , poiPrice                 :: !GYRational
     -- ^ The price for one unit of the offered asset.
-    , poiMinFilling            :: !Natural
-    -- ^ Minimal number of units of the asked-for asset that must be paid in a partial filling.
     , poiNFT                   :: !GYTokenName
     -- ^ Token name of the NFT identifying this partial order.
-    , poiFeesDeposits          :: !Natural
-    -- ^ Number of lovelace included for fees and deposits.
     , poiStart                 :: !(Maybe GYTime)
     -- ^ The time when the order can earliest be filled (optional).
     , poiEnd                   :: !(Maybe GYTime)
     -- ^ The time when the order can latest be filled (optional).
-    , poiFee                   :: !Natural
-    -- ^ The fee for each filling.
     , poiPartialFills          :: !Natural
     -- ^ The number of past partial fills.
+    , poiUTxOValue             :: !GYValue
+    -- ^ Total value in the UTxO.
+    , poiNFTCS                 :: !GYMintingPolicyId
+    -- ^ Caching the CS to avoid recalculating for it.
     } deriving stock (Show, Eq, Generic)
 
 -------------------------------------------------------------------------------
@@ -199,17 +192,13 @@ completelyFillPartialOrder poiSource = do
         Left orderRef -> getPartialOrderInfo orderRef
         Right poi     -> return poi
 
-    let price = partialOrderPrice oi poiOfferedAmount
-        feesAndDeposits = valueFromLovelace
-                          $ max 0
-                          $ toInteger poiFeesDeposits - toInteger poiFee
-        refScript  = maybe mempty mustHaveRefInput (porValidatorRef dexPORefs)
+    let refScript  = maybe mempty mustHaveRefInput (porValidatorRef dexPORefs)
         refMinting = maybe mempty mustHaveRefInput (porNftPolicyRef dexPORefs)
 
     cs <- validFillRangeConstraints poiStart poiEnd
     return $ mconcat
         [ mustHaveInput (partialOrderInfoToIn oi CompleteFill di)
-        , mustHaveOutput (partialOrderInfoToPayment oi $ price <> feesAndDeposits)
+        , mustHaveOutput (partialOrderInfoToPayment oi $ expectedValueOut oi poiOfferedAmount)
         , mustMint (mintingScript di) nothingRedeemer poiNFT (-1)
         , cs
         , refScript
@@ -226,7 +215,7 @@ partiallyFillPartialOrder
     -- ^ The amount of offered tokens to buy.
     -> m (GYTxSkeleton PlutusV2)
 partiallyFillPartialOrder poiSource amt = do
-    di@DEXInfo{dexNftPolicy, dexPartialOrderValidator, dexPORefs} <- ask
+    di@DEXInfo{dexPartialOrderValidator, dexPORefs} <- ask
 
     oi@PartialOrderInfo {..} <- case poiSource of
         Left orderRef -> getPartialOrderInfo orderRef
@@ -238,33 +227,18 @@ partiallyFillPartialOrder poiSource amt = do
         $ PodNonPositiveAmount $ toInteger amt
     when (amt >= poiOfferedAmount) . throwAppError
         $ PodRequestedAmountGreaterOrEqualToOfferedAmount amt poiOfferedAmount
-    when (amt < poiMinFilling) . throwAppError
-        $ PodRequestedAmountLessThanMinFilling amt poiMinFilling
 
     let od = partialOrderInfoToPartialOrderDatum oi
                 { poiOfferedAmount = poiOfferedAmount - amt
                 , poiPartialFills  = poiPartialFills + 1
                 }
-        price = partialOrderPrice oi amt
-        feesAndDeposits = valueFromLovelace
-                          $ max 0
-                          $ toInteger poiFeesDeposits -
-                            toInteger (poiFee + minDeposit)
-        v = mconcat
-            [ valueSingleton poiOfferedAsset (toInteger $ poiOfferedAmount - amt)
-            , feesAndDeposits
-            , valueSingleton (GYToken (mintingPolicyId dexNftPolicy) poiNFT) 1
-            ]
-        payment   = price <> valueFromLovelace (toInteger minDeposit)
-
-        o         = mkGYTxOut outAddr v (datumFromPlutusData od)
+        o = mkGYTxOut outAddr (expectedValueOut oi amt) (datumFromPlutusData od)
         refScript = maybe mempty mustHaveRefInput (porValidatorRef dexPORefs)
 
     cs <- validFillRangeConstraints poiStart poiEnd
     return $ mconcat
         [ mustHaveInput (partialOrderInfoToIn oi (PartialFill $ toInteger amt) di)
         , mustHaveOutput o
-        , mustHaveOutput (partialOrderInfoToPayment oi payment)
         , cs
         , refScript
         , mustHaveRefInput (porRefNftRef dexPORefs)
@@ -330,11 +304,9 @@ partialOrderInfoToPartialOrderDatum PartialOrderInfo {..} =
     , podOfferedAmount         = fromIntegral poiOfferedAmount
     , podAskedAsset            = assetClassToPlutus poiAskedAsset
     , podPrice                 = PlutusTx.fromGHC $ toRational poiPrice
-    , podMinFilling            = fromIntegral poiMinFilling
     , podNFT                   = tokenNameToPlutus poiNFT
     , podStart                 = timeToPlutus <$> poiStart
     , podEnd                   = timeToPlutus <$> poiEnd
-    , podFee                   = fromIntegral poiFee
     , podPartialFills          = fromIntegral poiPartialFills
     }
 
@@ -347,25 +319,21 @@ makePartialOrderInfo
     -> ExceptT GYTxMonadException m PartialOrderInfo
 makePartialOrderInfo orderRef (_, v, PartialOrderDatum {..}) = do
     DEXInfo{dexNftPolicy} <- ask
-    addr <- addressFromPlutus' podOwnerAddr
-    key  <- pubKeyHashFromPlutus' podOwnerKey
+    addr         <- addressFromPlutus' podOwnerAddr
+
+    key          <- pubKeyHashFromPlutus' podOwnerKey
 
     offeredAsset <- assetClassFromPlutus' podOfferedAsset
     nft          <- tokenNameFromPlutus' podNFT
     askedAsset   <- assetClassFromPlutus' podAskedAsset
 
-    let price        = rationalFromPlutus podPrice
-        feesDeposits = flip valueAssetClass GYLovelace $ v `valueMinus`
-                       valueSingleton offeredAsset podOfferedAmount
+    let price = rationalFromPlutus podPrice
 
     when (price <= 0) $
         throwAppError (PodNonPositivePrice price)
 
     when (valueAssetClass v (GYToken (mintingPolicyId dexNftPolicy) nft) /= 1) $
         throwAppError PodNftNotAvailable
-
-    when (podFee < 200_000) $
-        throwAppError (PodFeeNotEnough podFee)
 
     return PartialOrderInfo
         { poiRef                   = orderRef
@@ -376,13 +344,12 @@ makePartialOrderInfo orderRef (_, v, PartialOrderDatum {..}) = do
         , poiOfferedAmount         = fromInteger podOfferedAmount
         , poiAskedAsset            = askedAsset
         , poiPrice                 = price
-        , poiMinFilling            = fromInteger podMinFilling
         , poiNFT                   = nft
-        , poiFeesDeposits          = fromInteger feesDeposits
         , poiStart                 = timeFromPlutus <$> podStart
         , poiEnd                   = timeFromPlutus <$> podEnd
-        , poiFee                   = fromInteger podFee
         , poiPartialFills          = fromInteger podPartialFills
+        , poiUTxOValue             = v
+        , poiNFTCS                 = mintingPolicyId dexNftPolicy
         }
 
 validFillRangeConstraints
@@ -411,3 +378,12 @@ validFillRangeConstraints mstart mend = do
         if now <= endSlot
             then return $ isInvalidAfter $ min endSlot $ unsafeAdvanceSlot now 120
             else throwAppError $ TooLateFill {foeEnd = endSlot, foeNow = now}
+
+expectedValueOut :: PartialOrderInfo -> Natural -> GYValue
+expectedValueOut poi@PartialOrderInfo {..} amnt =
+  poiUTxOValue
+  <> partialOrderPrice poi amnt `valueMinus` ( valueSingleton poiOfferedAsset (toInteger amnt)
+                                                <> if poiOfferedAmount == amnt
+                                                  then valueSingleton (GYToken poiNFTCS poiNFT) 1
+                                                  else mempty
+                                             )

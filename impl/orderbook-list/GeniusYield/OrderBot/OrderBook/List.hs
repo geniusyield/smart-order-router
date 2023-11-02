@@ -88,6 +88,8 @@ buildOrderBookList
   :: [(OrderAssetPair, OrderBook)]
   -> (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #)
   -> [(OrderAssetPair, OrderBook)]
+buildOrderBookList acc (# _, _, [] #) = acc
+buildOrderBookList acc (# _, [], _ #) = acc
 buildOrderBookList acc (# oap, buyOrders, sellOrders #) =
   (oap, OrderBook (Orders $ sortOn price sellOrders)
                   (Orders $ sortOn (Down . price) buyOrders)) : acc

@@ -13,4 +13,4 @@ import GeniusYield.Imports ( Natural )
 -- | Altering this constant will result in a modification of the
 --   validator address.
 minDeposit :: Natural
-minDeposit = 2_000_000
+minDeposit = 2_100_000

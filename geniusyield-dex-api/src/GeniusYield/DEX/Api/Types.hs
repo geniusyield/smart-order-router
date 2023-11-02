@@ -70,14 +70,14 @@ mkDEXMintingPolicy mintingPolicyRaw v = mintingPolicyFromPly $ mintingPolicyRaw
                                         # toInteger minDeposit
 
 mkDEXValidator
-    :: TypedScript 'ValidatorRole '[Address, AssetClass, Integer]
+    :: TypedScript 'ValidatorRole '[Address, AssetClass]
     -> Address
     -> GYAssetClass
     -> GYValidator PlutusV2
 mkDEXValidator validatorRaw addr ac = validatorFromPly $ validatorRaw
                                       # addr
                                       # assetClassToPlutus ac
-                                      # fromIntegral minDeposit
+
 mkPORefs
     :: GYAddress
     -> GYAssetClass
