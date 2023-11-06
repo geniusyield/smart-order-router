@@ -24,7 +24,7 @@ jobs:
       - id: docker-metadata
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}:latest
+          images: ghcr.io/${{ github.repository }}
       - name: ${{ github.ref == 'refs/heads/main' && 'Build and Push Docker image' || 'Build Docker image' }}
         uses: docker/build-push-action@v5
         with:
