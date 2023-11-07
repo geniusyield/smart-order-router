@@ -25,6 +25,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          tags: |
+            # latest tag for the default branch:
+            type=raw,value=latest,enable={{is_default_branch}}
       - name: ${{ github.ref == 'refs/heads/main' && 'Build and Push Docker image' || 'Build Docker image' }}
         uses: docker/build-push-action@v5
         with:
