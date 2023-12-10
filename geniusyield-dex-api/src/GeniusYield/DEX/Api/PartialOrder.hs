@@ -12,8 +12,6 @@ module GeniusYield.DEX.Api.PartialOrder
     , PartialOrderAction (..)
     , PartialOrderInfo (..)
     , partialOrders
-    , completelyFillPartialOrder
-    , partiallyFillPartialOrder
     , fillMultiplePartialOrders
     , getPartialOrderInfo
     , getPartialOrdersInfos
@@ -262,84 +260,6 @@ partialOrders pOrderPredicate = do
 -------------------------------------------------------------------------------
 -- Tx building
 -------------------------------------------------------------------------------
-
--- | Completely fill a partially-fillable order.
-completelyFillPartialOrder ::
-  (HasCallStack, GYApiMonad m) =>
-  -- | The order reference.
-  Either GYTxOutRef PartialOrderInfo ->
-  m (GYTxSkeleton PlutusV2)
-completelyFillPartialOrder poiSource = do
-  di@DEXInfo{dexPORefs} <- ask
-
-  oi@PartialOrderInfo {..} <- case poiSource of
-    Left orderRef -> getPartialOrderInfo orderRef
-    Right poi     -> return poi
-
-  (cfgRef, poci) <- fetchPartialOrderConfig (porRefAddr dexPORefs) (porRefNft dexPORefs)
-
-  let containedFee = poiGetContainedFeeValue oi
-      fee          = containedFee <> valueFromLovelace (fromIntegral poiTakerLovelaceFlatFee)
-      feeOutput
-            | fee == mempty  = mempty
-            | otherwise      = mustHaveOutput $ mkGYTxOut
-                (pociFeeAddr poci)
-                fee
-                (datumFromPlutusData $
-                    PartialOrderFeeOutput
-                      { pofdMentionedFees = PlutusTx.singleton (txOutRefToPlutus poiRef) (valueToPlutus containedFee)
-                      , pofdReservedValue = mempty
-                      , pofdSpentUTxORef  = Nothing
-                      }
-                )
-      expectedValueOut = expectedPaymentWithDeposit oi True
-  cs <- validFillRangeConstraints poiStart poiEnd
-
-  return $
-    mustHaveInput (partialOrderInfoToIn oi CompleteFill di)
-      <> mustHaveOutput (partialOrderInfoToPayment oi expectedValueOut)
-      <> mustMint (mintingScript di) nothingRedeemer poiNFT (-1)
-      <> feeOutput
-      <> cs
-      <> mustHaveRefInput cfgRef
-
--- | Partially fill a partially-fillable order.
-partiallyFillPartialOrder ::
-  (HasCallStack, GYApiMonad m) =>
-  -- | The order reference.
-  Either GYTxOutRef PartialOrderInfo ->
-  -- | The amount of offered tokens to buy.
-  Natural ->
-  m (GYTxSkeleton PlutusV2)
-partiallyFillPartialOrder poiSource amt = do
-  di@DEXInfo{dexPORefs} <- ask
-
-  oi@PartialOrderInfo {..} <- case poiSource of
-    Left orderRef -> getPartialOrderInfo orderRef
-    Right poi     -> return poi
-
-  when (amt == 0) . throwAppError $ PodNonPositiveAmount $ toInteger amt
-  when (amt >= poiOfferedAmount) . throwAppError $ PodRequestedAmountGreaterOrEqualToOfferedAmount amt poiOfferedAmount
-
-  (cfgRef, _pocd) <- fetchPartialOrderConfig (porRefAddr dexPORefs) (porRefNft dexPORefs)
-
-  let price' = partialOrderPrice oi amt
-      od = partialOrderInfoToPartialOrderDatum oi
-              { poiOfferedAmount    = poiOfferedAmount - amt
-              , poiPartialFills     = poiPartialFills + 1
-              , poiContainedFee     = poiContainedFee <> mempty { poifLovelaces = fromIntegral poiTakerLovelaceFlatFee }
-              , poiContainedPayment = poiContainedPayment + fromIntegral (valueAssetClass price' poiAskedAsset)
-              }
-
-      expectedValueOut = poiUTxOValue <> price' <> valueFromLovelace (fromIntegral poiTakerLovelaceFlatFee) `valueMinus` valueSingleton poiOfferedAsset (toInteger amt)
-      o                = mkGYTxOut poiUTxOAddr expectedValueOut (datumFromPlutusData od)
-
-  cs <- validFillRangeConstraints poiStart poiEnd
-  return $
-    mustHaveInput (partialOrderInfoToIn oi (PartialFill $ toInteger amt) di)
-      <> mustHaveOutput o
-      <> cs
-      <> mustHaveRefInput cfgRef
 
 {- | Fills multiple orders. If the provided amount of offered tokens to buy in an order is equal to the offered amount, then we completely fill the order. Otherwise, it gets partially filled.
 -}
