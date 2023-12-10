@@ -15,16 +15,16 @@ module GeniusYield.OrderBot.DataSource.Providers
     , withEachAssetOrders
     ) where
 
-import Data.List (foldl')
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import           Data.List                        (foldl')
+import           Data.Map.Strict                  (Map)
+import qualified Data.Map.Strict                  as Map
 
-import GeniusYield.DEX.Api.PartialOrder
-import GeniusYield.OrderBot.Types
-import GeniusYield.TxBuilder
-import GeniusYield.Types
-import GeniusYield.DEX.Api.Types (DEXInfo(..), mkPORefs)
-import Control.Monad.Reader (ReaderT(runReaderT))
+import           Control.Monad.Reader             (ReaderT (runReaderT))
+import           GeniusYield.DEX.Api.PartialOrder
+import           GeniusYield.DEX.Api.Types        (DEXInfo (..), mkPORefs)
+import           GeniusYield.OrderBot.Types
+import           GeniusYield.TxBuilder
+import           GeniusYield.Types
 
 data Connection = Connection !GYNetworkId {-# UNPACK #-} !GYProviders
 
@@ -42,12 +42,12 @@ mkDEX :: GYMintingPolicy PlutusV2
       -> GYValidator PlutusV2
       -> Maybe GYTxOutRef
       -> Maybe GYTxOutRef
-      -> (GYAddress, GYAssetClass, GYTxOutRef)
+      -> (GYAddress, GYAssetClass)
       -> DEX
-mkDEX nft partialOrder mVRef mNPRef (porAddr, porAC, porRef) =
+mkDEX nft partialOrder mVRef mNPRef (porAddr, porAC) =
     DEXInfo { dexNftPolicy             = nft
             , dexPartialOrderValidator = partialOrder
-            , dexPORefs                = mkPORefs porAddr porAC porRef mVRef mNPRef
+            , dexPORefs                = mkPORefs porAddr porAC mVRef mNPRef
             }
 
 withEachAssetOrders
@@ -65,7 +65,7 @@ withEachAssetOrders c dex assetFilter f acc = do
           let (buys, sells) =
                 foldl'
                   ( \(!buys, !sells) (SomeOrderInfo oInf@OrderInfo {orderType}) -> case orderType of
-                      SBuyOrder -> (oInf : buys, sells)
+                      SBuyOrder  -> (oInf : buys, sells)
                       SSellOrder -> (buys, oInf : sells)
                   )
                   ([], [])
@@ -117,7 +117,7 @@ partialOrderInfoToOrderInfo :: (OrderAssetPair, PartialOrderInfo) -> SomeOrderIn
 partialOrderInfoToOrderInfo = uncurry mkOrderInfo
 
 isAfterStart :: GYTime -> Maybe GYTime -> Bool
-isAfterStart current = maybe True (current >)
+isAfterStart current = maybe True (current >=)
 
 isBeforeEnd :: GYTime -> Maybe GYTime -> Bool
-isBeforeEnd current = maybe True (current <)
+isBeforeEnd current = maybe True (current <=)
