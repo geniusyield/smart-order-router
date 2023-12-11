@@ -8,7 +8,7 @@ services:
          {"cborHex": "$PAYMENT_SIGNING_KEY_CBOR_HEX", "type": "PaymentSigningKeyShelley_ed25519", "description": "Payment Signing Key"}
       BOTC_COLLATERAL: "$COLLATERAL_UTXO_REF"
       BOTC_CONFIG: |
-         {"coreProvider": { "socketPath": "/ipc/node.socket", "kupoUrl": "kupo:1442" }, "networkId": "testnet-preprod", "logging": [{ "type": { "tag": "stderr" }, "severity": "Info", "verbosity": "V2" }]}
+         {"coreProvider": { "socketPath": "/ipc/node.socket", "kupoUrl": "kupo:1442" }, "networkId": "${NETWORK-mainnet}", "logging": [{ "type": { "tag": "stderr" }, "severity": "Info", "verbosity": "V2" }]}
     restart: always
     volumes: [node-ipc:/ipc]
     depends_on:
@@ -17,7 +17,7 @@ services:
   kupo:
     image: cardanosolutions/kupo
     container_name: kupo
-    volumes: [node-ipc:/ipc, ./cardano-configurations/network/preprod:/network/preprod]
+    volumes: [node-ipc:/ipc, ./cardano-configurations/network:/network]
     ports: ['1442:1442']
     depends_on: { node: { condition: service_healthy } }
     command: [
@@ -25,7 +25,7 @@ services:
      --since, origin,
      --match, "*",
      --host, "0.0.0.0",
-     --node-config, /network/preprod/cardano-node/config.json,
+     --node-config, "/network/${NETWORK-mainnet}/cardano-node/config.json",
      --in-memory,
      --prune-utxo,
     ]
@@ -37,13 +37,15 @@ services:
   node:
     image: inputoutput/cardano-node
     container_name: node
-    environment: [NETWORK=preprod]
-    volumes: [node-db:/data/db, node-ipc:/ipc]
+    environment:
+     - NETWORK=${NETWORK-mainnet}
+    volumes: ["${NETWORK-mainnet}-node-db:/data/db", node-ipc:/ipc]
     healthcheck:
         test: ["CMD", "test", "-S", "/ipc/node.socket"]
         interval: 30s
         timeout: 10s
         retries: 100
 volumes:
-  node-db: null
+  preprod-node-db: null
+  mainnet-node-db: null
   node-ipc: null
