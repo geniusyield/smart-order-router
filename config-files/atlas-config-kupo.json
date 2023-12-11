@@ -3,7 +3,7 @@
     "socketPath": "<<CARDANO_NODE_SOCKET_PATH>>",
     "kupoUrl": "<<KUPO_URL>>"
   },
-  "networkId": "testnet-preprod",
+  "networkId": "preprod",
   "logging": [
     {
       "type": {

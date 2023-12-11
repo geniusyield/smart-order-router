@@ -2,7 +2,7 @@
   "coreProvider": {
     "maestroToken": "<<MAESTRO_TOKEN>>"
   },
-  "networkId": "testnet-preprod",
+  "networkId": "preprod",
   "logging": [
     {
       "type": {

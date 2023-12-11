@@ -23,3 +23,6 @@ cabal.project.local
 .DS_Store
 config-files/*
 *.skey
+*.vkey
+*.addr
+scripts/kupo-mainnet.sh
