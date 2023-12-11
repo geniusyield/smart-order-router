@@ -33,11 +33,13 @@
 
 ## Overview
 
-SORs are off-chain bots that execute a routing algorithm that scans the blockchain
-for open limit orders, matches them based on their trigger conditions, and submits
-new transactions back to the ledger to perform the swap state transitions. Each Smart
-Swap encodes trigger conditions that the SOR must fulfill to execute the swap. The SOR
-continuously scans and analyzes the current state of the limit orders and relies on
+Smart Order Routers play a crutial role in the operation of the [Genius Yield Decentralized Exchange](https://www.geniusyield.co/).
+
+Smart Order Routers (SORs) are off-chain agents that execute a routing algorithm that scans 
+the Cardano blockchain for open limit orders, matches them based on their trigger conditions,
+and submits new transactions back to the ledger to perform the swap state transitions.
+Each Smart Swap encodes trigger conditions that the SOR must fulfill to execute the swap.
+The SOR continuously scans and analyzes the current state of the limit orders on-chain and relies on
 the configured matching strategy to best execute a customer’s order based on price.
 
 Specifically, the bot periodically builds a multi-asset order book consisting of one
@@ -46,11 +48,18 @@ only sell and buy orders for the same pair of tokens. The bot runs the selected 
 over the multi-asset order book to obtain a list of matches. The matches are then
 translated into transactions that will be signed and submitted by the bot.
 
-## Crash Course GeniusYield DEX Orders <> SOR
+Due to the open and decentralized design of the protocol, anybody can run a Smart Order
+Router instance and collect a share of the fees, thus running a Smart Order Router instance
+is not only contributiung to the further decentralization of the protocol, but it is also
+incentivized financially.
 
-Let's start with a concrete and short overview of the GY DEX Orders, so the context
-of the SOR for using, modifying, and improving with new custom strategies is properly
-established. A complete description can be found in the [GY whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
+## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
+
+Let's start with a concrete and short overview of the GY DEX Orders, to provide some context,
+so the reader could better understand the purpose of the Smart Order Routers and how they could
+benefit from customizing existing order matching strategies or even implementing completely new strategies from scratch.
+
+For a more detailed description, please see the [Genius Yield Whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
 
 Given a pair of tokens, an order will contain the number of tokens it offers and the price of one unit of offered token in terms of asked tokens.
 Besides that, the order will have some life timeline and, of course, a notion of ownership
@@ -60,18 +69,18 @@ us and it's important to mention that all this information is **mandatory**, but
 the life timeline, meaning the order will always be available. Once we create an order, the offered
 tokens will be locked on the order.
 
-Given an order, two interesting "actions" can be performed over it. The owner can cancel
-it and get back the locked tokens. Or anyone can _fill_ it, filling an order is just paying
+Given an specific order, two interesting "actions" might be performed on it. The owner can cancel
+it and get back the previously locked tokens. Or anyone can _fill_ it, filling an order is just paying
 the correct amount of tokens the owner of the order expects to receive related to the
 amount of tokens we want to buy from that order. Following the previous example, anyone
 could fill that order by buying from it `6 tokenA` and paying `12 tokenB`.
 
-One important thing to mention that is transparent for any end user, is that there are
-two kinds of fills: _complete_ and _partial_. A complete fill will buy all the offered
-tokens from the order, and for the partial fill, we need to specify the amount we want
-to buy from the order. For us, that will be running and probably improving this implementation
-is relevant because, as we will see in a moment, we can design different matching strategies
-using these two different fills.
+One important thing to mention, that is actually completely transparent for the end user,
+is that there are two kinds of fills: _complete_ and _partial_. A complete fill will buy all 
+the offered tokens from the order, and for the partial fill, we need to specify the amount we want
+to buy from the order. For those of us, who will be not only running an SOR instance, but probably even improve the
+matching strategy implementation, this is highly relevant since, as we will see in a moment,
+it is possible to design different matching strategies using these two different type of fills.
 
 Up to this point, we quickly covered the key actions that can be performed over the orders.
 There shouldn't be any surprise if we mention that each action is performed by a transaction.
@@ -100,17 +109,17 @@ Using the previous example we could have two cases:
 <tr><th> Commodity A | Currency B </th><th> Commodity B | Currency A </th></tr>
 <tr><td>
 
-|  Amount   |    Price   |  Type |
-|:-----------:|:-----------:|:------:|
-| `10 tokenA` |  `2 tokenB`   | Sell  |
-| `8 tokenA`  |  `2.5 tokenB` | Buy   |
+|  Amount     |    Price      |  Type  |
+|:-----------:|:-------------:|:------:|
+| `10 tokenA` |  `2 tokenB`   | Sell   |
+| `8 tokenA`  |  `2.5 tokenB` | Buy    |
 
 </td><td>
 
-|  Amount   |    Price   |  Type |
-|:-----------:|:-----------:|:------:|
-| `20 tokenB` |  `0.4 tokenA`  | Sell  |
-| `20 tokenB`  |  `0.5 tokenA` | Buy   |
+|  Amount     |    Price       |  Type  |
+|:-----------:|:--------------:|:------:|
+| `20 tokenB` |  `0.4 tokenA`  | Sell   |
+| `20 tokenB` |  `0.5 tokenA`  | Buy    |
 
 </td></tr>
 </table>
@@ -119,12 +128,12 @@ If we want our earnings to be in `tokenA` then the
 commodity must be `tokenB`. So we can buy from the sell order, `20 tokenB` using `8 tokenA`, then
 using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 tokenA`.
 
-## Building and running
+## Building and running the Smart Order Router
 
 > [!NOTE]
 > In order to run Smart Order Router instances for the public testnet, please use the preprod testnet as in the examples below.
 
-### Docker
+### Running the SOR using Docker
 
 A ready-to-run, containerized version of the Smart Order Router is available via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
 
@@ -208,7 +217,25 @@ COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12
 docker compose up
 ```
 
-### Local build
+### Building the SOR using docker
+
+The SOR can be built using docker.
+
+Simply cloning the repository and building the docker image should be sufficient, so no Haskell tooling, like GHC or Cabal must be installed locally.
+
+All of these tools necessary for building the SOR are available in the build stage of the [Dockerfile](https://github.com/geniusyield/smart-order-router/blob/main/Dockerfile).
+
+```bash
+git clone https://github.com/geniusyield/smart-order-router.git
+cd smart-order-router
+docker build .
+```
+
+Smaller changes to the logic might be possible using the the docker based build, but if bigger changes are necessary, you might want to build the SOR locally on you workstation directly.
+
+In the next chapter you can find detailed step-by-step description about this.
+
+### Locally building the SOR
 
 First, you need to setup the necessary tooling to work with [haskell.nix](https://github.com/input-output-hk/haskell.nix).
 A complete guide and troubleshooting of how to install and configure `nix` can be
@@ -219,9 +246,11 @@ you can build the order bot with `cabal build all`.
 
 ### Orderbot Config
 
-To run the order bot, it is necessary to setup the provider and specify the bot options. There is one option for a completely local provider and two remote ones.
+To run the order bot, it is necessary to setup the provider and specify the bot options. The provider configuration defines how the SOR instances accesses the Cardano blockchain and how it is submitting transactions.
 
-#### Local Provider
+It is possible to use a completely autonomous local provider by utilizing [Kupo](https://github.com/CardanoSolutions/kupo/tree/master) and running your own [Cardano node](https://github.com/input-output-hk/cardano-node), but it is also possible to use one of the service providers to access the Cardano Blockchain; Maestro or Blockfrost, so you could rely on their services, which enables you to run your SOR instance with minimal resources needed and without running your own Cardano node.
+
+#### Local Provider: using Kupo and a Cardano Node
 
 [Kupo](https://github.com/CardanoSolutions/kupo) can be used as a local provider. For this it is necessary to provide a path to a cardano node socket file and the Kupo url in the [atlas-config-kupo.json](./config-files/atlas-config-kupo.json) file.
 
@@ -329,7 +358,7 @@ do the work. But as we mentioned the `collateral` config field is optional.
 
 The SOR has the ability to use reference scripts on the filling transactions to
 help minimize the fees. To do that, we need to use the official contract information
-that is completely placed on the blockchain. That is the validator and minting policy.
+that is completely placed on the blockchain. That is the validator and the minting policy.
 
 ##### Preprod
 ```json
@@ -362,8 +391,8 @@ that is completely placed on the blockchain. That is the validator and minting p
 
 #### Running
 
-Once we compiled and configured the order bot, you can execute using the [Makefile](./Makefile):
-`make orderbot-maestro`, `make orderbot-blockfrost` or `make orderbot-kupo`.
+Once we compiled and configured the order bot, you can execute the SOR using the [Makefile](./Makefile):
+`make orderbot-maestro`, `make orderbot-blockfrost` or `make orderbot-kupo` depending on the provider you want to use.
 
 #### Testing
 
@@ -388,13 +417,13 @@ The SOR is organized into 5 main folders:
 ### Backpack
 
 This is an order matching bot implementation that is meant to be modular and polymorphic. It
-uses backpack to support this goal. Backpack is surprisingly flexible, supporting signature
+uses backpack to reach this goal. Backpack is extremely flexible, supporting signature
 merging and signature thinning. This may be especially relevant for modular orderbot implementations.
 [Signature thinning](https://github.com/danidiaz/really-small-backpack-example/tree/master/lesson4-signature-thinning) is when an indefinite library depends on a signature but only demands a
 subset of said signature, allowing an implementation that only implements said subset of the
 interface to be used merrily with the library.
 
-Solid resource for learning backpack: [GitHub - danidiaz/really-small-backpack-example: A really small example of the Backpack module system for Haskell](https://github.com/danidiaz/really-small-backpack-example)
+To get started with Backpack, please see the following example: [A really small example of the Backpack module system for Haskell](https://github.com/danidiaz/really-small-backpack-example)
 
 ## Strategies
 
@@ -412,10 +441,10 @@ which consists of both sell and buy orders. Each matching result represents a tr
 which involves a specific set of sell and buy orders.
 
 We can start with the most bureaucratic part of adding a new strategy. We need to define the
-name of the new strategy, so let's say we want to implement the "dual" strategy to the one
-that is already there. We want to implement then one strategy that given the best buy order,
-searches for many sell orders. We add then a new constructor `OneBuyToManySell` to the type
-BotStrategy
+name of the new strategy, so let's say we want to implement the "reverse" strategy to the one
+that is already there. We want to implement a strategy that takes the best buy order,
+searches for many sell orders to match this with. We need to simply add a new constructor `OneBuyToManySell` to the 
+`BotStrategy` type
 
 ```haskell
 data BotStrategy = OneSellToManyBuy
@@ -435,22 +464,23 @@ mkIndependentStrategy bs maxOrders _ bk =
 ```
 
 Once we get to this point, we can focus on the implementation of the new function. In fact,
-we can start with a very silly implementation that doesn't find any matching with the goal
-of compiling everything.
+we can just start with a dummy implementation that won't find any matching with the goal
+to just to simply compile everything for now.
 
 ```haskell
 oneBuyToManySell :: Natural -> OrderBook -> [MatchResult]
 oneBuyToManySell _ _ = []
 ```
 
-Even more! We can add the new constructor `OneBuyToManySell` to the `allStrategies` list and it will be enough to start testing our strategy by running the tests.
+Even more! We can add the new constructor `OneBuyToManySell` to the `allStrategies` [list](https://github.com/geniusyield/smart-order-router/blob/75aeeb733ea2c747595e2b231460601d80ed2866/geniusyield-orderbot/src/Strategies.hs#L58)
+and this should be enough to start testing with our custom strategy by running the tests.
 
 ```haskell
 allStrategies :: [BotStrategy]
-allStrategies = [OneSellToManyBuy]
+allStrategies = [OneSellToManyBuy, OneBuyToManySell]
 ```
 
-Finishing the implementation of `oneBuyToManySell` is left as an exercise.
+Finishing the dummy implementation of `oneBuyToManySell` with the actual logic is left as an optional coding exercise for the reader.
 
 <details>
   <summary>Hint</summary>
@@ -466,7 +496,7 @@ different SOR instances?
 
 ## Troubleshooting
 
-### Providers
+### Provider related error messages
 
 - `geniusyield-orderbot-exe: MspvApiError "SystemStart" (MaestroApiKeyMissing "Invalid authentication credentials")`,
   you need to setup the corresponding Maestro token into [atlas-config-maestro.json](./config-files/atlas-config-maestro.json) file.
@@ -474,7 +504,7 @@ different SOR instances?
 - `geniusyield-orderbot-exe: BlpvApiError "LedgerGenesis" (BlockfrostTokenMissing "Invalid project token.")`
   you need to setup the corresponding Blockfrost token into [atlas-config-blockfrost.json](./config-files/atlas-config-blockfrost.json) file.
 
-### Cardano
+### Cardano related error messages
 
 - `BadInputsUTxO` in the exception that is raised during tx submission, not creation/balancing,
   usually indicates contention. An order you are trying to match is being matched by another transaction.
@@ -486,14 +516,14 @@ different SOR instances?
   tokens to construct the transaction. If you see ADA in the value that is printed afterward, it means
   your bot is out of ADA. More often, however, this error will be raised if your matching strategy
   does not return proper order matches and there aren't enough tokens in the transaction bucket to pay
-  an order.
+  for an order.
 
 - `GYTxMonadException "... amount x must be smaller than offered amount x ...`,
   you are trying to partially fill an order, but the partial fill amount is the max volume of the
   order. Use [`CompleteFill`](./geniusyield-orderbot-framework/src/GeniusYield/OrderBot/MatchingStrategy.hs#L98C17-L98C29) instead. See [GeniusYield.OrderBot.MatchingStrategy](./geniusyield-orderbot-framework/src/GeniusYield/OrderBot/MatchingStrategy.hs#L98)
   for more information.
 
-### Cabal <> Haskell
+### Cabal and Haskell
 
 - HLS will not work in signature modules, nor will it work in modules importing a signature module.
 
