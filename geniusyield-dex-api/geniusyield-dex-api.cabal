@@ -101,7 +101,7 @@ library
   import:          common-ghc-opts
   hs-source-dirs:  src
   exposed-modules:
-    GeniusYield.DEX.Api.Constants
     GeniusYield.DEX.Api.PartialOrder
+    GeniusYield.DEX.Api.PartialOrderConfig
     GeniusYield.DEX.Api.Utils
     GeniusYield.DEX.Api.Types

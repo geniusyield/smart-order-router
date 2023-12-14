@@ -61,25 +61,19 @@ benefit from customizing existing order matching strategies or even implementing
 
 For a more detailed description, please see the [Genius Yield Whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
 
-Given a pair of tokens, an order will contain the number of tokens it offers, the price
-of one unit of those offered, and the minimal amount that must be bought from the order.
-Besides that, the order will have optionally a lifetime and, of course, a notion of ownership
+Given a pair of tokens, an order will contain the number of tokens it offers and the price of one unit of offered token in terms of asked tokens.
+Besides that, the order will have some life timeline and, of course, a notion of ownership
 related to the one that created it. For example, we could create an order offering of `10 tokenA`,
-with a unit price of `2 tokenB`, that is, we expect to receive `2 tokenB` per `1 tokenA`. Also, we
-want the minimal amount to be bought be `5 tokenA`. Clearly, the owners of this order will be
-the creator, who placed the order, and it's important to keep in mind that all this information
-is **mandatory**, excluding the lifetime of the order, which is optional, meaning, when it is missing, the order won't
-expire and it is going to be be available for an unlimited time. Once we create an order, the offered
-tokens will be locked in the order, until it is filled or cancelled.
+with a unit price of `2 tokenB`, that is, we expect to receive `2 tokenB` per `1 tokenA`. Clearly, the owners of this order will be
+us and it's important to mention that all this information is **mandatory**, but we can avoid setting
+the life timeline, meaning the order will always be available. Once we create an order, the offered
+tokens will be locked on the order.
 
 Given an specific order, two interesting "actions" might be performed on it. The owner can cancel
 it and get back the previously locked tokens. Or anyone can _fill_ it, filling an order is just paying
 the correct amount of tokens the owner of the order expects to receive related to the
 amount of tokens we want to buy from that order. Following the previous example, anyone
-could fill that order by buying from it `6 tokenA` and paying the owner `12 tokenB`. But, it
-isn't possible to buy, for instance, `3 tokenA` from the order because the minimal amount
-was setup to `5`, except the amount of offered tokens is less than that. This makes sure that no tokens get
-stuck in the contract, even if the number is lower then the minimal fill amount.
+could fill that order by buying from it `6 tokenA` and paying `12 tokenB`.
 
 One important thing to mention, that is actually completely transparent for the end user,
 is that there are two kinds of fills: _complete_ and _partial_. A complete fill will buy all 
@@ -93,9 +87,9 @@ There shouldn't be any surprise if we mention that each action is performed by a
 
 Now, let's suppose, besides the previous order, we have another one offering of `20 tokenB`,
 with a unit price of `0.4 tokenA`. We could earn some tokens by “combining” the two orders
-and take advantage of the price difference. Following the example, given we bought `6 tokenA`
-using `12 tokenB`, we now can use these `6 tokenA` to buy back `15 tokenB` from this other
-order, earning `3 tokenB`. These two fills can be combined into a single transaction, in
+and take advantage of the price difference. Following the example, given we bought `8 tokenA`
+using `16 tokenB`, we now can use these `8 tokenA` to buy back `20 tokenB` from this other
+order, earning `4 tokenB`. These two fills can be combined into a single transaction, in
 fact, we could combine more than two orders.
 
 The SOR has the ability to build these transactions matching orders programmatically,
@@ -130,22 +124,18 @@ Using the previous example we could have two cases:
 </td></tr>
 </table>
 
-If we want our earnings to be in `tokenB`, then the commodity must be `tokenA`. We can buy from
-the sell order, `6 tokenA` using `12 tokenB`, then using these `6 tokenA` we buy back `15 tokenB` from
-the buy order, earning `3 tokenB`. However, if we want our earnings to be in `tokenA`, then the
-commodity must be `tokenB`. So we can buy from the sell order, `18 tokenB` using `7 tokenA`, then
-using these `18 tokenB` we buy back `9 tokenA` from the buy order, earning `2 tokenA`.
+If we want our earnings to be in `tokenA` then the
+commodity must be `tokenB`. So we can buy from the sell order, `20 tokenB` using `8 tokenA`, then
+using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 tokenA`.
 
 ## Building and running the Smart Order Router
 
 > [!NOTE]
-> The Genius Yield DEX is in the public testnet phase at the moment.
->
 > In order to run Smart Order Router instances for the public testnet, please use the preprod testnet as in the examples below.
 
 ### Running the SOR using Docker
 
-A ready-to-run, containerized version of the Smart Order Router is availabe via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
+A ready-to-run, containerized version of the Smart Order Router is available via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
 
 A Smart Order Router container instance using the Maestro backend can be started by using the following snippet:
 
@@ -156,7 +146,7 @@ A Smart Order Router container instance using the Maestro backend can be started
 PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
 MAESTRO_API_KEY=some_api_key
-CARDANO_NETWORK=testnet-preprod
+CARDANO_NETWORK=preprod
 
 docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
@@ -171,6 +161,9 @@ Alternatively the Blockfrost or the Kupo backend could be used.
 
 This can be accomplished for Blockfrost by using the following commands:
 
+> [!NOTE]
+> Few of the optimisations that we make use of such as querying UTxOs and their datums in a single request, aren't available for Blockfrost, thus, this provider is expected to run slow compared to other providers.
+
 ``` bash
 # SMART ORDER ROUTER INSTANCE USING BLOCKFROST
 # ============================================
@@ -178,7 +171,7 @@ This can be accomplished for Blockfrost by using the following commands:
 PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692d58f6d75250f39134
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
 BLOCKFROST_API_KEY=some_api_key
-CARDANO_NETWORK=testnet-preprod
+CARDANO_NETWORK=preprod
 
 docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
@@ -189,6 +182,12 @@ docker run -it \
 
 And the following commands can be used to start a Kupo backed instance, if you want to use an existing Kupo instance:
 
+  > **ⓘ How to run Kupo efficiently?**
+  >
+  > Firstly, Kupo requires a node running, note that node itself maintains efficient access to information such as current protocol parameters, current set of pool ids, etc. but it doesn't efficiently provide us with UTxOs when say queried by a particular address. Kupo helps in covering this gap and gives us efficient lookup tables to query for UTxOs. For our use case, we are only interested in our own bot's UTxOs, order UTxOs and the required reference scripts / reference inputs. So we'll run Kupo to keep track of only those UTxOs, note that if we instead run Kupo by matching against star (`*`) pattern, then as Kupo does many disk writes, we would quickly burn out our SSDs TBW limit.
+  >
+  > Please see the scripts, [`kupo-preprod.sh`](./scripts/kupo-preprod.sh) for pre-production network and [`kupo-mainnet.sh`](./scripts/kupo-mainnet.sh) for mainnet network to see how this can be achieved. Note that these two scripts take as an argument the match pattern for bot's UTxOs, you may very well give the bech32 address of bot as value of this argument. To understand what all the script does, please see Kupo's [documentation](https://cardanosolutions.github.io/kupo/#section/Getting-started).
+
 ``` bash
 # SMART ORDER ROUTER INSTANCE USING KUPO (existing Kupo instance)
 # ===============================================================
@@ -197,7 +196,7 @@ PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1
 KUPO_URL=http://some.url.to.your.kupo.instance:1442
 CARDANO_NODE_SOCKET_PATH=/cardano/node/socket
-CARDANO_NETWORK=testnet-preprod
+CARDANO_NETWORK=preprod
 
 docker run -it \
     -e BOTC_SKEY="{\"cborHex\": \"$PAYMENT_SIGNING_KEY_CBOR_HEX\", \"type\": \"PaymentSigningKeyShelley_ed25519\", \"description\": \"Payment Signing Key\"}" \
@@ -277,25 +276,24 @@ file. The complete bot configuration looks like this:
 
 ```json
 {
-   "signingKeyFP":"bot.skey",
-   "nftMintingPolicyFP":"compiled-scripts/minting-policy",
-   "orderValidatorFP":"compiled-scripts/partial-order",
-   "validatorRefs":{
-      "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
-      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
-      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
-      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
-      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+   "signingKeyFP": "bot.skey",
+   "nftMintingPolicyFP": "compiled-scripts/minting-policy",
+   "orderValidatorFP": "compiled-scripts/partial-order",
+   "validatorRefs": {
+      "refAddr": "addr_test1wrgvy8fermjrruaf7fnndtmpuw4xx4cnvfqjp5zqu8kscfcvh32qk",
+      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.8309f9861928a55d37e84f6594b878941edce5e351f7904c2c63b559bde45c5c",
+      "scriptRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#2",
+      "nftPolicyRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#1"
    },
-   "strategy":"OneSellToManyBuy",
-   "scanDelay":40000000,
-   "maxOrderMatches":5,
-   "maxTxsPerIteration":5,
-   "randomizeMatchesFound":true,
-   "scanTokens":[
+   "strategy": "OneSellToManyBuy",
+   "scanDelay": 40000000,
+   "maxOrderMatches": 5,
+   "maxTxsPerIteration": 4,
+   "randomizeMatchesFound": true,
+   "scanTokens": [
       {
-         "commodityAsset":"c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53",
-         "currencyAsset":"lovelace"
+         "commodityAsset": "c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53",
+         "currencyAsset": "lovelace"
       }
    ]
 }
@@ -353,7 +351,7 @@ the private signing key, the verification key, and the wallet address on the
 preprod testnet. You can claim some **preprod** lovelaces using the
 [faucet](https://docs.cardano.org/cardano-testnet/tools/faucet/).
 
-It's **recomended** to create and setup a `collateral`. A UTxO with 5 ADAs will
+It's **recommended** to create and setup a `collateral`. A UTxO with 5 ADAs will
 do the work. But as we mentioned the `collateral` config field is optional.
 
 #### Deployed Contract
@@ -365,29 +363,24 @@ that is completely placed on the blockchain. That is the validator and the minti
 ##### Preprod
 ```json
 {
-   "validatorRefs":{
-      "refAddr":"addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
-      "refNftAC":"fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.e6a295bb83d06f53fcf91151f54acec0a63fbd6f0d924206d5d012e6da3b72af",
-      "refNftUtxoRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0",
-      "scriptRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#1",
-      "nftPolicyRef":"39f987a6beb9cc4c45bba149a21c28068f640f3593f15f8157f0b6022b431977#0"
+   "validatorRefs": {
+      "refAddr": "addr_test1wrgvy8fermjrruaf7fnndtmpuw4xx4cnvfqjp5zqu8kscfcvh32qk",
+      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.8309f9861928a55d37e84f6594b878941edce5e351f7904c2c63b559bde45c5c",
+      "scriptRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#2",
+      "nftPolicyRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#1"
    }
 }
 ```
 
 ##### Mainnet
 
-> [!NOTE]
-> The Smart Order Router configuration for the Cardano Mainnet is going to be available as we approach the Mainnet launch date.
-
 ```json
 {
    "validatorRefs":{
-      "refAddr":"",
-      "refNftAC":"",
-      "refNftUtxoRef":"",
-      "scriptRef":"",
-      "nftPolicyRef":""
+      "refAddr": "addr1w9zr09hgj7z6vz3d7wnxw0u4x30arsp5k8avlcm84utptls8uqd0z",
+      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.4aff78908ef2dce98bfe435fb3fd2529747b1c4564dff5adebedf4e46d0fc63d",
+      "scriptRef": "062f97b0e64130bc18b4a227299a62d6d59a4ea852a4c90db3de2204a2cd19ea#2",
+      "nftPolicyRef": "062f97b0e64130bc18b4a227299a62d6d59a4ea852a4c90db3de2204a2cd19ea#1"
    }
 }
 ```
@@ -521,7 +514,7 @@ different SOR instances?
   does not return proper order matches and there aren't enough tokens in the transaction bucket to pay
   for an order.
 
-- `GYTxMonadException "partiallyFillPartialOrder: amount x must be smaller than offered amount x`,
+- `GYTxMonadException "... amount x must be smaller than offered amount x ...`,
   you are trying to partially fill an order, but the partial fill amount is the max volume of the
   order. Use [`CompleteFill`](./geniusyield-orderbot-framework/src/GeniusYield/OrderBot/MatchingStrategy.hs#L98C17-L98C29) instead. See [GeniusYield.OrderBot.MatchingStrategy](./geniusyield-orderbot-framework/src/GeniusYield/OrderBot/MatchingStrategy.hs#L98)
   for more information.

@@ -30,11 +30,11 @@ genGYTxOutRef = do
 genHexString :: Gen Char
 genHexString = elements $ ['a'..'f'] ++ ['0'..'9']
 
--- | Generator for the Volume. With a fixed minVolume of 34%
-genVolume :: Gen Volume
-genVolume = do
-    vh <- chooseInteger (100,100000000)
-    pure $ Volume (ceiling $ (vh % 1) * (34 % 100)) (fromIntegral vh)
+-- | Given a min, generate the max Volume.
+genVolume :: Integer -> Gen Volume
+genVolume min = do
+    vh <- chooseInteger (min ,100000000)
+    pure $ Volume (fromIntegral min) (fromIntegral vh)
 
 {- | Generator for the Volume. With a fixed minVolume of 34%.
 with an specified minimum and maximum.
@@ -53,19 +53,18 @@ genPrice = do
 
 -- | Generator for a buy order, using all previous generators
 genBuyOrder :: OrderAssetPair -> Gen (OrderInfo 'BuyOrder)
-genBuyOrder oap = OrderInfo <$> genGYTxOutRef
-                            <*> pure SBuyOrder
-                            <*> pure oap
-                            <*> genVolume
-                            <*> genPrice
-                            <*> pure Nothing
+genBuyOrder oap = do
+    price <- genPrice
+    volume <- genVolume (ceiling $ getPrice price)
+    utxoRef <- genGYTxOutRef
+    return $ OrderInfo utxoRef SBuyOrder oap volume price Nothing
 
 -- | Generator for a sell order, using all previous generators
 genSellOrder :: OrderAssetPair -> Gen (OrderInfo 'SellOrder)
 genSellOrder oap = OrderInfo <$> genGYTxOutRef
                              <*> pure SSellOrder
                              <*> pure oap
-                             <*> genVolume
+                             <*> genVolume 1
                              <*> genPrice
                              <*> pure Nothing
 
@@ -87,8 +86,9 @@ shrinkOrderInfo :: forall t. OrderInfo t -> [OrderInfo t]
 shrinkOrderInfo order =
     [ order { volume = vol'} | vol' <- shrinkVolume (volume order) ]
 
--- | Shrinks a Volume by making sure the min is positive and the max is over the min
+{- | Shrinks a Volume by making sure the max is over the min.
+     The min is fixed, so no need to shrink it.
+-}
 shrinkVolume :: Volume -> [Volume]
 shrinkVolume v@Volume{volumeMin, volumeMax} =
-    [ v { volumeMin = vl' } | vl' <- shrinkIntegral volumeMin, vl' > 0 ] ++
-    [ v { volumeMax = vh' } | vh' <- shrinkIntegral volumeMax, vh' > volumeMin ]
+    [ v { volumeMax = vh' } | vh' <- shrinkIntegral volumeMax, vh' >= volumeMin ]

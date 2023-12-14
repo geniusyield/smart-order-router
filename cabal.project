@@ -33,8 +33,8 @@ package strict-containers
 source-repository-package
   type: git
   location: https://github.com/maestro-org/haskell-sdk
-  tag: 3c4efccb00df8e9fe0313dfb5228e294caa1807d
-  --sha256: sha256-H7SsK0ri7cmE9d9cUhFZu24s1FWrvMuVlKzplFfBe+4=
+  tag: fb8e32869f7a8f5fa2585b542e4eb4207eaf735b
+  --sha256: sha256-LOiC9zPXjPFshKfb/SKkFBkAFnOuQDwCqeDB7ZyB3b0=
 
 -- Unfortunately, cardano-node 8.1.2 is constrained with plutus-ledger-api 1.5.0.0 and we would like at least 1.6.0.0.
 -- This is done in accordance with changes in https://github.com/input-output-hk/cardano-ledger/pull/3430/files.
@@ -64,8 +64,8 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/geniusyield/atlas
-  tag: v0.3.0
-  --sha256: sha256-55nIF4S6TyrI1onWH6bu7WDynqHophMZ+QCyw8IFsfQ=
+  tag: 44b235ac4f4337dd2b2488b4f79f33a987f2be72
+  --sha256: sha256-EL7o0yYJIC8KvH0kZ9J0n+h/+w4GI4hCz39QyDA7Udg=
 
 source-repository-package
   type: git
@@ -76,12 +76,12 @@ source-repository-package
     cardano-simple
     psm
 
--- Temporary until the changes are merged upstream. Delete this afterwards.
+-- This should be present for in hackage index state >= 18th of september, 23. Remove it when we update to it.
 source-repository-package
   type: git
-  location: https://github.com/sourabhxyz/blockfrost-haskell
-  tag: d1ace8d71512a70f37131e4d4c4d5ba67a6324c9
-  --sha256: sha256-GXKuRyBnpITjxRDHauJwpjQu8qX4UPLud/opc+Mi9Fg=
+  location: https://github.com/blockfrost/blockfrost-haskell
+  tag: 206e1a0f62e2a7cc08d05db8d62cef8dc2fbd98e
+  --sha256: sha256-R6BP3hwrOBmlRabA3prUuOGkYzETmQIM+K+Oh+fczEY=
   subdir:
     blockfrost-api
     blockfrost-client-core
@@ -128,8 +128,8 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/paolino/openapi3
-  tag: c30d0de6875d75edd64d1aac2272886528bc492d
-  --sha256: 0b0fzj5vrnfrc8qikabxhsnp4p8lrjpssblbh2rb7aji5hzzfli9
+  tag: f22c31611c295637a3e72b341cd1c56d1d87b993
+  --sha256: 10l7wlaz9rcr3fysi1vwg7qqa826bb7nidkpx9jy1q7ja7ddw47i
 
 source-repository-package
     type: git

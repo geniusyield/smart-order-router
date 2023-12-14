@@ -16,23 +16,24 @@ module GeniusYield.DEX.Api.Types
     , mkPORefs
     ) where
 
-import Control.Monad.Reader ( MonadReader )
+import           Control.Monad.Reader        (MonadReader)
 
-import Ply                        ( TypedScript, ScriptRole (..) )
-import Ply.Core.Apply             ( (#) )
-import PlutusLedgerApi.V1         ( Address )
-import PlutusLedgerApi.V1.Scripts ( ScriptHash )
-import PlutusLedgerApi.V1.Value   ( AssetClass )
+import           PlutusLedgerApi.V1          (Address)
+import           PlutusLedgerApi.V1.Scripts  (ScriptHash)
+import           PlutusLedgerApi.V1.Value    (AssetClass)
+import           Ply                         (ScriptRole (..), TypedScript)
+import           Ply.Core.Apply              ((#))
 
-import GeniusYield.DEX.Api.Constants ( minDeposit )
-import GeniusYield.DEX.Api.Utils     ( validatorFromPly, mintingPolicyFromPly )
-import GeniusYield.Types             ( GYValidator, GYMintingPolicy
-                                     , GYAddress, GYAssetClass
-                                     , PlutusVersion(PlutusV2)
-                                     , GYTxOutRef, scriptPlutusHash
-                                     , validatorToScript, assetClassToPlutus
-                                     )
-import GeniusYield.TxBuilder.Class   ( GYTxMonad, GYTxQueryMonad )
+import           GeniusYield.DEX.Api.Utils   (mintingPolicyFromPly,
+                                              validatorFromPly)
+import           GeniusYield.TxBuilder.Class (GYTxMonad, GYTxQueryMonad)
+import           GeniusYield.Types           (GYAddress, GYAssetClass,
+                                              GYMintingPolicy, GYTxOutRef,
+                                              GYValidator,
+                                              PlutusVersion (PlutusV2),
+                                              assetClassToPlutus,
+                                              scriptPlutusHash,
+                                              validatorToScript)
 
 type GYApiQueryMonad m = (MonadReader DEXInfo m, GYTxQueryMonad m)
 
@@ -51,8 +52,6 @@ data PORefs = PORefs
     -- ^ The address where the reference NFT will be placed.
     , porRefNft       :: !GYAssetClass
     -- ^ The reference NFT.
-    , porRefNftRef    :: !GYTxOutRef
-    -- ^ The location of the reference NFT.
     , porValidatorRef :: !(Maybe GYTxOutRef)
     -- ^ The reference for the partial order validator.
     , porNftPolicyRef :: !(Maybe GYTxOutRef)
@@ -62,34 +61,36 @@ data PORefs = PORefs
 -- Smart Constructors
 
 mkDEXMintingPolicy
-    :: TypedScript 'MintingPolicyRole '[ScriptHash, Integer]
+    :: TypedScript 'MintingPolicyRole '[ScriptHash, Address, AssetClass]
     -> GYValidator PlutusV2
+    -> Address
+    -> GYAssetClass
     -> GYMintingPolicy PlutusV2
-mkDEXMintingPolicy mintingPolicyRaw v = mintingPolicyFromPly $ mintingPolicyRaw
-                                        # scriptPlutusHash (validatorToScript v)
-                                        # toInteger minDeposit
+mkDEXMintingPolicy mintingPolicyRaw v addr ac =
+  mintingPolicyFromPly $ mintingPolicyRaw
+    # scriptPlutusHash (validatorToScript v)
+    # addr
+    # assetClassToPlutus ac
 
 mkDEXValidator
-    :: TypedScript 'ValidatorRole '[Address, AssetClass, Integer]
+    :: TypedScript 'ValidatorRole '[Address, AssetClass]
     -> Address
     -> GYAssetClass
     -> GYValidator PlutusV2
 mkDEXValidator validatorRaw addr ac = validatorFromPly $ validatorRaw
                                       # addr
                                       # assetClassToPlutus ac
-                                      # fromIntegral minDeposit
+
 mkPORefs
     :: GYAddress
     -> GYAssetClass
-    -> GYTxOutRef
     -> Maybe GYTxOutRef
     -> Maybe GYTxOutRef
     -> PORefs
-mkPORefs porAddr porAC porRef mVRef mNPRef =
+mkPORefs porAddr porAC mVRef mNPRef =
     PORefs
     { porRefAddr      = porAddr
     , porRefNft       = porAC
-    , porRefNftRef    = porRef
     , porValidatorRef = mVRef
     , porNftPolicyRef = mNPRef
     }

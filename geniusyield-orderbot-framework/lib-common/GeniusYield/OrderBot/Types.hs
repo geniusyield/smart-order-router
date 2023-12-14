@@ -15,22 +15,24 @@ module GeniusYield.OrderBot.Types
     , Volume (..)
     , Price (..)
     , mkOrderInfo
+    , isSellOrder
+    , isBuyOrder
     , mkOrderAssetPair
     , equivalentAssetPair
     , mkEquivalentAssetPair
     ) where
 
-import           Data.Aeson (ToJSON, (.=))
-import qualified Data.Aeson as Aeson
-import           Data.Kind  (Type)
-import           Data.Ratio (denominator, numerator, (%))
-import           Numeric.Natural (Natural)
+import           Data.Aeson                       (ToJSON, (.=))
+import qualified Data.Aeson                       as Aeson
+import           Data.Kind                        (Type)
+import           Data.Ratio                       (denominator, numerator, (%))
+import           Numeric.Natural                  (Natural)
 
-import           GeniusYield.Types.TxOutRef (GYTxOutRef)
-import           GeniusYield.Types.Value (GYAssetClass (..))
+import           GeniusYield.Types.TxOutRef       (GYTxOutRef)
+import           GeniusYield.Types.Value          (GYAssetClass (..))
 
 import           GeniusYield.DEX.Api.PartialOrder (PartialOrderInfo (..))
-import           GeniusYield.Types (rationalToGHC)
+import           GeniusYield.Types                (rationalToGHC)
 
 -------------------------------------------------------------------------------
 -- Information on DEX orders relevant to a matching strategy
@@ -51,14 +53,14 @@ See: 'mkOrderInfo'.
 -}
 type OrderInfo :: OrderType -> Type
 data OrderInfo t = OrderInfo
-    { orderRef :: !GYTxOutRef
+    { orderRef  :: !GYTxOutRef
     , orderType :: !(SOrderType t)
     , assetInfo :: !OrderAssetPair
-    , volume :: !Volume
+    , volume    :: !Volume
     -- ^ Volume of the 'commodityAsset', either being bought or sold.
-    , price :: !Price
+    , price     :: !Price
     -- ^ Price of each 'commodityAsset', in 'currencyAsset'.
-    , mPoi :: !(Maybe PartialOrderInfo)
+    , mPoi      :: !(Maybe PartialOrderInfo)
     -- ^ The complete PartialOrderInfo. To avoid quering it again when filling the order
     }
     deriving stock (Eq, Show)
@@ -81,8 +83,8 @@ asking for another.
 
 For sell orders, where the offered asset in the DEX order is deemed to be a
 'commodityAsset', there is no conversion necessary. 'volume' is simply in terms
-of the offered asset amount and minFilling. Similarly, 'price' is the same as the
-DEX order's price.
+of the offered asset amount and the minFill is simply 1.
+Similarly, 'price' is the same as the DEX order's price.
 
 But what about buy orders? These are the orders that are offering an asset which
 is deemed to be a 'currencyAsset'. And they are asking for an asset which is deemed
@@ -93,6 +95,8 @@ In that case, the price is simply the DEX order's price but flipped (e.g x % y -
 The volume conversion is slightly more involved, the max volume is the DEX order's
 price multiplied by the DEX order's offered amount. If the result is not a whole
 number, it is ceiled - because more payment is always accepted, but less is not.
+The min volume is just the ceiling of the price, because that's the amount of
+commodity assets you would need to pay to access 1 of the offered currencyAssets.
 
 -}
 mkOrderInfo
@@ -104,18 +108,26 @@ mkOrderInfo
 mkOrderInfo oap poi@PartialOrderInfo{..} = case orderType of
     BuyOrder ->
         let maxVolume = ceiling $ (toInteger poiOfferedAmount % 1) * askedPrice
-            minVolume = ceiling $ (toInteger poiMinFilling % 1) * askedPrice
+            minVolume = ceiling askedPrice
         in builder SBuyOrder
                    (Volume minVolume maxVolume) $
                    Price (denominator askedPrice % numerator askedPrice)
     SellOrder -> builder SSellOrder
-                         (Volume poiMinFilling poiOfferedAmount) $
+                         (Volume 1 poiOfferedAmount) $
                          Price askedPrice
   where
     orderType = mkOrderType poiAskedAsset oap
     askedPrice = rationalToGHC poiPrice
     builder :: SOrderType t -> Volume -> Price -> SomeOrderInfo
     builder t vol price = SomeOrderInfo $ OrderInfo poiRef t oap vol price (Just poi)
+
+isSellOrder :: OrderInfo t -> Bool
+isSellOrder OrderInfo { orderType = SSellOrder} = True
+isSellOrder _                                   = False
+
+isBuyOrder :: OrderInfo t -> Bool
+isBuyOrder OrderInfo { orderType = SBuyOrder} = True
+isBuyOrder _                                  = False
 
 -------------------------------------------------------------------------------
 -- Order classification components.
@@ -134,24 +146,14 @@ deriving stock instance Show (SOrderType t)
 -- Order components
 -------------------------------------------------------------------------------
 
-{- | The amount of the commodity asset (being brought or sold), represented as a
-closed interval.
+{- | The amount of the commodity asset (being brought or sold), represented as
+a closed interval.
 
-This is particularly relevant for orders that support partial filling. Indeed,
-for a partially fillable order, the volume is _dynamic_. It has to be _at least_
-`minFilling`, and _at most_ `offeredAmount`.
+Although the contract permits fills as low a 1 indivisible token,
+the @volumeMin@ field is still needed, because Buy orders are normalized and you
+can't always fill it for 1. The amount depends on the price of the order.
 
-Say a partial order selling 30 A tokens for some B tokens. The order placer has
-set the `minFilling` to 10 - suggesting that anyone wishing to buy some of these
-A tokens (but not all) must buy _at least_ 10 A tokens. Therefore, its A token
-'Volume' is (10, 30).
-
-For regular orders, where partial fills are not permitted, and one must buy the
-whole offered amount - 'volumeMin', and 'volumeMax' are the same, equal to the
-`offeredAmount`. For example, a non-partially fillable order selling 30 A tokens
-for some B tokens, will have its 'Volume' set to (30, 30).
-
-volumeMin should always be <= volumeMax. Users are responsible for maintaining
+@volumeMin@ should always be @<= volumeMax@. Users are responsible for maintaining
 this invariant.
 -}
 data Volume = Volume
