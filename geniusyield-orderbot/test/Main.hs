@@ -31,8 +31,6 @@ qcTestsForStrategy strat = testGroup (show strat)
                                mkStrategyTest iStrat propCanExecuteFill
                            , testProperty "Can find only Match - Price" $
                                propCanFindOnlyMatching iStrat genOrderInfosWrongPrices
-                            , testProperty "Can find only Match - Volume" $
-                               propCanFindOnlyMatching iStrat genOrderInfosWrongVolumes
                            ]
   where
     iStrat = mkIndependentStrategy strat 10

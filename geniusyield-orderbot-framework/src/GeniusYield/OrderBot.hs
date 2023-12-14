@@ -11,96 +11,92 @@ module GeniusYield.OrderBot ( OrderBot (..)
                             , runOrderBot
                             ) where
 
-import           Control.Arrow        ((&&&), second)
-import           Control.Concurrent   (threadDelay)
-import           Control.Exception    ( SomeException
-                                      , AsyncException( UserInterrupt )
-                                      , fromException, bracket, handle
-                                      )
-import           Control.Monad        (forever, unless, filterM)
-import           Control.Monad.Reader (runReaderT)
-import           Data.Foldable        (fold, toList)
-import           Data.Functor         ((<&>))
-import           Data.Aeson (ToJSON, encode)
-import           Data.Functor.Identity (runIdentity)
-import           Data.Maybe            (mapMaybe)
-import           Data.List             (find)
+import           Control.Arrow                         (second, (&&&))
+import           Control.Concurrent                    (threadDelay)
+import           Control.Exception                     (AsyncException (UserInterrupt),
+                                                        SomeException, bracket,
+                                                        fromException, handle)
+import           Control.Monad                         (filterM, forever,
+                                                        unless)
+import           Control.Monad.Reader                  (runReaderT)
+import           Data.Aeson                            (ToJSON, encode)
+import           Data.Foldable                         (foldl', toList)
+import           Data.Functor                          ((<&>))
+import           Data.Functor.Identity                 (runIdentity)
+import           Data.List                             (find)
+import           Data.Maybe                            (mapMaybe)
 
-import           System.Exit ( exitSuccess )
+import           System.Exit                           (exitSuccess)
 
-import qualified Data.Map as M
-import qualified Data.List.NonEmpty   as NE (toList)
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text as Txt
+import qualified Data.ByteString.Char8                 as B
+import qualified Data.ByteString.Lazy                  as BL
+import qualified Data.List.NonEmpty                    as NE (toList)
+import qualified Data.Map                              as M
+import qualified Data.Text                             as Txt
 
-import GeniusYield.Providers.Common (SubmitTxException)
-import GeniusYield.GYConfig ( GYCoreConfig (cfgNetworkId)
-                            , withCfgProviders
-                            , coreConfigIO
-                            )
-import GeniusYield.OrderBot.DataSource ( closeDB, connectDB, mkDEX )
-import GeniusYield.OrderBot.MatchingStrategy ( IndependentStrategy
-                                             , MatchResult
-                                             , MatchExecutionInfo (..)
-                                             , executionSkeleton
-                                             , matchExecutionInfoUtxoRef
-                                             )
-import GeniusYield.OrderBot.OrderBook ( OrderBook
-                                      , buyOrders, sellOrders
-                                      , foldrOrders
-                                      , populateOrderBook
-                                      , withEachAsset
-                                      , maOrderBookToList
-                                      )
-import GeniusYield.OrderBot.Types ( OrderAssetPair(..), assetInfo )
-import GeniusYield.TxBuilder ( GYTxBuildResult(..)
-                             , GYTxSkeleton
-                             , GYTxMonadNode
-                             , utxosAtTxOutRefs
-                             , runGYTxQueryMonadNode
-                             )
-import GeniusYield.TxBuilder.Node ( runGYTxMonadNodeParallelWithStrategy )
-import GeniusYield.Types
+import           GeniusYield.GYConfig                  (GYCoreConfig (cfgNetworkId),
+                                                        coreConfigIO,
+                                                        withCfgProviders)
+import           GeniusYield.OrderBot.DataSource       (closeDB, connectDB,
+                                                        mkDEX)
+import           GeniusYield.OrderBot.MatchingStrategy (IndependentStrategy,
+                                                        MatchExecutionInfo (..),
+                                                        MatchResult,
+                                                        executionSkeleton,
+                                                        matchExecutionInfoUtxoRef)
+import           GeniusYield.OrderBot.OrderBook        (OrderBook, buyOrders,
+                                                        foldrOrders,
+                                                        maOrderBookToList,
+                                                        populateOrderBook,
+                                                        sellOrders,
+                                                        withEachAsset)
+import           GeniusYield.OrderBot.Types            (OrderAssetPair (..),
+                                                        assetInfo)
+import           GeniusYield.Providers.Common          (SubmitTxException)
+import           GeniusYield.TxBuilder                 (GYTxBuildResult (..),
+                                                        GYTxMonadNode,
+                                                        GYTxSkeleton,
+                                                        runGYTxQueryMonadNode,
+                                                        utxosAtTxOutRefs)
+import           GeniusYield.TxBuilder.Node            (runGYTxMonadNodeParallelWithStrategy)
+import           GeniusYield.Types
 
-import GeniusYield.DEX.Api.Types        ( DEXInfo (..)
-                                        , PORefs (..)
-                                        , dexNftPolicy
-                                        , dexPartialOrderValidator
-                                        )
-import GeniusYield.Transaction ( BuildTxException
-                               , GYCoinSelectionStrategy(GYRandomImproveMultiAsset)
-                               )
+import           GeniusYield.DEX.Api.Types             (DEXInfo (..),
+                                                        PORefs (..),
+                                                        dexNftPolicy,
+                                                        dexPartialOrderValidator)
+import           GeniusYield.Transaction               (BuildTxException,
+                                                        GYCoinSelectionStrategy (GYLegacy))
 
 -- | The order bot is product type between bot info and "execution strategies".
 data OrderBot = OrderBot
-    { botSkey :: !GYPaymentSigningKey
+    { botSkey            :: !GYPaymentSigningKey
     -- ^ Signing key of the bot.
-    , botCollateral :: !(Maybe (GYTxOutRef, Bool))
+    , botCollateral      :: !(Maybe (GYTxOutRef, Bool))
     {- ^ UTxO ref of the collateral UTxO in the bot's wallet.
 
          NOTE: If collateral is Nothing, then Atlas will choose some UTxO to
-         function as collateral. If a TxOutRef is given, the bool indicates wheter
+         function as collateral. If a TxOutRef is given, the bool indicates whether
          the collateral can be spent in the tx.
     -}
-    , botExecutionStrat :: !ExecutionStrategy
+    , botExecutionStrat  :: !ExecutionStrategy
     -- ^ The execution strategy, which includes and governs the matching strategy.
     , botAssetPairFilter :: [OrderAssetPair]
     {- ^ List that can be used to filter out uninteresting orders/pools.
          The multiasset order book is created only with the existing pairs on
          the list.
     -}
-    , botRescanDelay :: Int
+    , botRescanDelay     :: Int
     {- ^ How many microseconds to wait after a tx submission before rescanning
          the chain for orders.
     -}
-    , botTakeMatches :: [MatchResult] -> IO [MatchResult]
+    , botTakeMatches     :: [MatchResult] -> IO [MatchResult]
     {- ^ How and how many matching results do the bot takes to build, sign and
          submit every iteration.
     -}
     }
 
-{- | Currently, we only have the parallel execution strategy: MultiAssetTraverse,
+{- | Currently, we only have the parallel execution strategy: @MultiAssetTraverse@,
      where each order book for each unique asset pair (see: "GeniusYield.OrderBot.Types.equivalentAssetPair")
      is processed independently.
 -}
@@ -139,7 +135,7 @@ runOrderBot
                             (dexPartialOrderValidator di)
                             (porNftPolicyRef por)
                             (porValidatorRef por)
-                            (porRefAddr por, porRefNft por, porRefNftRef por)
+                            (porRefAddr por, porRefNft por)
 
         logInfo $ unlines
             [ ""
@@ -160,7 +156,7 @@ runOrderBot
             logInfo "Rescanning for orders..."
 
             -- First we populate the multi asset orderbook, using the provided
-            -- 'populateOrderBook'.
+            -- @populateOrderBook@.
             book <- populateOrderBook conn dex botAssetPairFilter
 
             let bookList = maOrderBookToList book
@@ -259,7 +255,7 @@ buildTransactions matchesToExecute di netId
                   providers botAddr botCollateral = handle handlerBuildTx $ do
 
     res <- runGYTxMonadNodeParallelWithStrategy
-               GYRandomImproveMultiAsset
+               GYLegacy
                netId providers [botAddr] botAddr
                botCollateral $ traverse resultToSkeleton matchesToExecute
 
@@ -283,7 +279,7 @@ buildTransactions matchesToExecute di netId
     getBodies = NE.toList . runIdentity . sequence
 
     resultToSkeleton :: MatchResult -> GYTxMonadNode (GYTxSkeleton 'PlutusV2)
-    resultToSkeleton mResult = fold <$> traverse (flip runReaderT di . executionSkeleton) mResult
+    resultToSkeleton mResult = runReaderT (executionSkeleton mResult) di
 
     handlerBuildTx :: BuildTxException -> IO [(GYTxBody, MatchResult)]
     handlerBuildTx ex = logWarn (unwords ["BuildTxException:", show ex])
@@ -372,8 +368,8 @@ totalBuyOrders :: OrderBook -> Int
 totalBuyOrders = foldrOrders (const (+1)) 0 . buyOrders
 
 matchingsPerOrderAssetPair :: [OrderAssetPair] -> [MatchResult] -> M.Map OrderAssetPair Int
-matchingsPerOrderAssetPair oaps = foldl succOAP (M.fromList $ map (,0) oaps)
+matchingsPerOrderAssetPair oaps = foldl' succOAP (M.fromList $ map (, 0) oaps)
     where
       succOAP :: M.Map OrderAssetPair Int -> MatchResult -> M.Map OrderAssetPair Int
-      succOAP m (OrderExecutionInfo _ oi:_) = M.insertWith (+) (assetInfo oi) 1 m
+      succOAP m (OrderExecutionInfo _ oi : _) = M.insertWith (+) (assetInfo oi) 1 m
       succOAP m _ = m

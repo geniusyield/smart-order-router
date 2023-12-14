@@ -57,10 +57,7 @@ mkDEX
     -- ^ Script Ref for the Partial Orders Validator
     -> Maybe GYTxOutRef
     -- ^ Script Ref for the NFT minting policy
-    -> (GYAddress, GYAssetClass, GYTxOutRef)
-    {- ^ Triplet representing the UTxO, address and value, where the NFT minting
-         policy of the orders is placed.
-    -}
+    -> (GYAddress, GYAssetClass)
     -> DEX
 
 {- | Fetch all unique DEX order asset pairings, and for each such asset pair, fetch all buy and sell orders.

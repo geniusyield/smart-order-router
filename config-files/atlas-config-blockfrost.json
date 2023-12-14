@@ -2,7 +2,7 @@
   "coreProvider": {
     "blockfrostKey": "<<BLOCKFROST_API_KEY>>"
   },
-  "networkId": "testnet-preprod",
+  "networkId": "preprod",
   "logging": [
     {
       "type": {
