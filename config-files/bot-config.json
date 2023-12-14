@@ -3,16 +3,15 @@
    "nftMintingPolicyFP": "compiled-scripts/minting-policy",
    "orderValidatorFP": "compiled-scripts/partial-order",
    "validatorRefs": {
-      "refAddr": "addr_test1wpgexmeunzsykesf42d4eqet5yvzeap6trjnflxqtkcf66g0kpnxt",
-      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.6af3807634905a04be64a8dbe0ddb9da6ce52eed23cb428c7be5d6114eacc189",
-      "refNftUtxoRef": "aaaae7e568aab31db6f74faaf550867d58b2361868324567470862ecaaac7646#0",
-      "scriptRef": "aaaae7e568aab31db6f74faaf550867d58b2361868324567470862ecaaac7646#1",
-      "nftPolicyRef": "aaaae7e568aab31db6f74faaf550867d58b2361868324567470862ecaaac7646#0"
+      "refAddr": "addr_test1wrgvy8fermjrruaf7fnndtmpuw4xx4cnvfqjp5zqu8kscfcvh32qk",
+      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.8309f9861928a55d37e84f6594b878941edce5e351f7904c2c63b559bde45c5c",
+      "scriptRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#2",
+      "nftPolicyRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#1"
    },
    "strategy": "OneSellToManyBuy",
    "scanDelay": 40000000,
    "maxOrderMatches": 5,
-   "maxTxsPerIteration": 5,
+   "maxTxsPerIteration": 4,
    "randomizeMatchesFound": true,
    "scanTokens": [
       {

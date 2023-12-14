@@ -17,22 +17,20 @@ module GeniusYield.OrderBot.MatchingStrategy
     , matchExecutionInfoUtxoRef
     ) where
 
-import Data.Aeson      (ToJSON (toJSON), (.=))
-import qualified Data.Aeson as Aeson
-import Data.Ratio      ((%))
-import Data.Text       (Text)
-import Numeric.Natural (Natural)
+import           Data.Aeson                       (ToJSON (toJSON), (.=))
+import qualified Data.Aeson                       as Aeson
+import           Data.Maybe                       (fromJust)
+import           Data.Text                        (Text)
+import           Numeric.Natural                  (Natural)
 
-import GeniusYield.DEX.Api.PartialOrder ( completelyFillPartialOrder
-                                        , partiallyFillPartialOrder
-                                        , PartialOrderInfo
-                                        )
-import GeniusYield.DEX.Api.Types        (GYApiMonad)
-import GeniusYield.OrderBot.OrderBook   (OrderBook)
-import GeniusYield.OrderBot.Types
-import GeniusYield.TxBuilder            (GYTxSkeleton)
-import GeniusYield.Types.TxOutRef       (showTxOutRef, GYTxOutRef)
-import GeniusYield.Types.PlutusVersion  (PlutusVersion(PlutusV2))
+import           GeniusYield.DEX.Api.PartialOrder (PartialOrderInfo (poiOfferedAmount),
+                                                   fillMultiplePartialOrders)
+import           GeniusYield.DEX.Api.Types        (GYApiMonad)
+import           GeniusYield.OrderBot.OrderBook   (OrderBook)
+import           GeniusYield.OrderBot.Types
+import           GeniusYield.TxBuilder            (GYTxSkeleton)
+import           GeniusYield.Types.PlutusVersion  (PlutusVersion (PlutusV2))
+import           GeniusYield.Types.TxOutRef       (GYTxOutRef, showTxOutRef)
 
 {- | A matching strategy has access to the 'OrderBook' for a single asset pair,
 alongside all its relevant query functions. It must produce a 'MatchResult' which
@@ -67,7 +65,7 @@ instance ToJSON MatchExecutionInfo where
       ]
     where
       prettySOrderType :: SOrderType t -> Text
-      prettySOrderType SBuyOrder = "Buy"
+      prettySOrderType SBuyOrder  = "Buy"
       prettySOrderType SSellOrder = "Sell"
 
 {- | The result of order matching - should contain information to perform execute order and LP transactions.
@@ -98,14 +96,22 @@ must be paid by the order.
 data FillType = CompleteFill | PartialFill Natural deriving stock (Eq, Show)
 
 executionSkeleton
-    :: GYApiMonad m
-    => MatchExecutionInfo
-    -> m (GYTxSkeleton PlutusV2)
-executionSkeleton (OrderExecutionInfo CompleteFill oi) = completelyFillPartialOrder $ poiSource oi
-executionSkeleton (OrderExecutionInfo (PartialFill n) oi@OrderInfo {orderType = SSellOrder}) =
-  partiallyFillPartialOrder (poiSource oi) n
-executionSkeleton (OrderExecutionInfo (PartialFill n) oi@OrderInfo {orderType = SBuyOrder, price}) =
-  partiallyFillPartialOrder (poiSource oi) . floor $ (toInteger n % 1) * getPrice price
+  :: GYApiMonad m
+  => MatchResult
+  -> m (GYTxSkeleton 'PlutusV2)
+executionSkeleton mr = fillMultiplePartialOrders $ map f mr
+  where
+    f (OrderExecutionInfo ft o) =
+      (poiSource o
+      , case ft of
+          CompleteFill -> poiOfferedAmount $ fromJust $ mPoi o
+          PartialFill n ->
+            if isBuyOrder o then
+              floor $ fromIntegral n * getPrice (price o)
+            else
+              n
+      )
+
 
 matchExecutionInfoUtxoRef :: MatchExecutionInfo -> GYTxOutRef
 matchExecutionInfoUtxoRef (OrderExecutionInfo CompleteFill OrderInfo {orderRef}) = orderRef
@@ -114,4 +120,4 @@ matchExecutionInfoUtxoRef (OrderExecutionInfo (PartialFill _) OrderInfo {orderRe
 -- | If the order contains the PartialOrderInfo, return it. If not, return the ref
 poiSource :: forall t. OrderInfo t -> Either GYTxOutRef PartialOrderInfo
 poiSource OrderInfo {orderRef, mPoi = Nothing} = Left orderRef
-poiSource OrderInfo {mPoi = Just poi} = Right poi
+poiSource OrderInfo {mPoi = Just poi}          = Right poi

@@ -22,17 +22,17 @@ module GeniusYield.OrderBot.Types
     , mkEquivalentAssetPair
     ) where
 
-import           Data.Aeson (ToJSON, (.=))
-import qualified Data.Aeson as Aeson
-import           Data.Kind  (Type)
-import           Data.Ratio (denominator, numerator, (%))
-import           Numeric.Natural (Natural)
+import           Data.Aeson                       (ToJSON, (.=))
+import qualified Data.Aeson                       as Aeson
+import           Data.Kind                        (Type)
+import           Data.Ratio                       (denominator, numerator, (%))
+import           Numeric.Natural                  (Natural)
 
-import           GeniusYield.Types.TxOutRef (GYTxOutRef)
-import           GeniusYield.Types.Value (GYAssetClass (..))
+import           GeniusYield.Types.TxOutRef       (GYTxOutRef)
+import           GeniusYield.Types.Value          (GYAssetClass (..))
 
 import           GeniusYield.DEX.Api.PartialOrder (PartialOrderInfo (..))
-import           GeniusYield.Types (rationalToGHC)
+import           GeniusYield.Types                (rationalToGHC)
 
 -------------------------------------------------------------------------------
 -- Information on DEX orders relevant to a matching strategy
@@ -53,14 +53,14 @@ See: 'mkOrderInfo'.
 -}
 type OrderInfo :: OrderType -> Type
 data OrderInfo t = OrderInfo
-    { orderRef :: !GYTxOutRef
+    { orderRef  :: !GYTxOutRef
     , orderType :: !(SOrderType t)
     , assetInfo :: !OrderAssetPair
-    , volume :: !Volume
+    , volume    :: !Volume
     -- ^ Volume of the 'commodityAsset', either being bought or sold.
-    , price :: !Price
+    , price     :: !Price
     -- ^ Price of each 'commodityAsset', in 'currencyAsset'.
-    , mPoi :: !(Maybe PartialOrderInfo)
+    , mPoi      :: !(Maybe PartialOrderInfo)
     -- ^ The complete PartialOrderInfo. To avoid quering it again when filling the order
     }
     deriving stock (Eq, Show)
@@ -123,11 +123,11 @@ mkOrderInfo oap poi@PartialOrderInfo{..} = case orderType of
 
 isSellOrder :: OrderInfo t -> Bool
 isSellOrder OrderInfo { orderType = SSellOrder} = True
-isSellOrder _ = False
+isSellOrder _                                   = False
 
 isBuyOrder :: OrderInfo t -> Bool
 isBuyOrder OrderInfo { orderType = SBuyOrder} = True
-isBuyOrder _ = False
+isBuyOrder _                                  = False
 
 -------------------------------------------------------------------------------
 -- Order classification components.
@@ -149,11 +149,11 @@ deriving stock instance Show (SOrderType t)
 {- | The amount of the commodity asset (being brought or sold), represented as
 a closed interval.
 
-Although the contract now permits fills as low a 1 indivisible token,
-the volumeMin field is still needed, because Buy orders are normalized and you
+Although the contract permits fills as low a 1 indivisible token,
+the @volumeMin@ field is still needed, because Buy orders are normalized and you
 can't always fill it for 1. The amount depends on the price of the order.
 
-volumeMin should always be <= volumeMax. Users are responsible for maintaining
+@volumeMin@ should always be @<= volumeMax@. Users are responsible for maintaining
 this invariant.
 -}
 data Volume = Volume

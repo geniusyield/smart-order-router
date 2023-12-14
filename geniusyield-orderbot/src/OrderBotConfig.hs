@@ -26,7 +26,6 @@ import           Data.Random ( shuffle, sample )
 import qualified Data.Vector as V
 import           Data.List ( nub )
 import           GHC.Generics ( Generic )
-import           GHC.Natural ( naturalToInteger )
 import           System.Envy ( FromEnv (fromEnv), Var, Parser, envMaybe, env
                              , decodeEnv
                              )
@@ -162,7 +161,6 @@ data PORConfig =
     PORConfig
     { botCRefAddr      :: GYAddress
     , botCRefNft       :: GYAssetClass
-    , botCRefNftRef    :: GYTxOutRef
     , botCScriptRef    :: Maybe GYTxOutRef
     , botCNftPolicyRef :: Maybe GYTxOutRef
     }
@@ -173,7 +171,6 @@ instance FromJSON PORConfig where
         PORConfig
         <$> (addressFromBech32 <$> obj .: "refAddr")
         <*> obj .: "refNftAC"
-        <*> obj .: "refNftUtxoRef"
         <*> obj .:? "scriptRef"
         <*> obj .:? "nftPolicyRef"
     parseJSON _ = fail "Expecting object value"
@@ -225,7 +222,7 @@ intToNatural _ i | i > 0 = return $ fromInteger $ toInteger i
 intToNatural msg _ = throwIO $ userError $ msg ++ " is negative or zero"
 
 takeMatches :: Bool -> Natural -> [MatchResult] -> IO [MatchResult]
-takeMatches r (fromIntegral . naturalToInteger -> maxTxPerIter) matches =
+takeMatches r (fromIntegral -> maxTxPerIter) matches =
     take maxTxPerIter <$> if r then shuffleList matches else return matches
 
 shuffleList :: [a] -> IO [a]
@@ -245,10 +242,9 @@ getDexInfo OrderBotConfig{ botCFPNftPolicy
     let partialOrderValidator = mkDEXValidator dexValidatorRaw
                                                (addressToPlutus $ botCRefAddr botCPORConfig)
                                                (botCRefNft botCPORConfig)
-        nftPolicy             = mkDEXMintingPolicy dexPolicyRaw partialOrderValidator
+        nftPolicy             = mkDEXMintingPolicy dexPolicyRaw partialOrderValidator (addressToPlutus $ botCRefAddr botCPORConfig) (botCRefNft botCPORConfig)
         porefs = PORefs { porRefAddr      = botCRefAddr botCPORConfig
                         , porRefNft       = botCRefNft botCPORConfig
-                        , porRefNftRef    = botCRefNftRef botCPORConfig
                         , porValidatorRef = botCScriptRef botCPORConfig
                         , porNftPolicyRef = botCNftPolicyRef botCPORConfig
                         }
@@ -260,7 +256,7 @@ getDexInfo OrderBotConfig{ botCFPNftPolicy
 
   where
     readNftPolicy
-        :: IO (TypedScript 'MintingPolicyRole '[ScriptHash, Integer])
+        :: IO (TypedScript 'MintingPolicyRole '[ScriptHash, Address, AssetClass])
     readNftPolicy = readTypedScript botCFPNftPolicy
 
     readOrderValidator
