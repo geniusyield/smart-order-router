@@ -25,4 +25,3 @@ config-files/*
 *.skey
 *.vkey
 *.addr
-scripts/kupo-mainnet.sh

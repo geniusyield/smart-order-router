@@ -186,7 +186,7 @@ And the following commands can be used to start a Kupo backed instance, if you w
   >
   > Firstly, Kupo requires a node running, note that node itself maintains efficient access to information such as current protocol parameters, current set of pool ids, etc. but it doesn't efficiently provide us with UTxOs when say queried by a particular address. Kupo helps in covering this gap and gives us efficient lookup tables to query for UTxOs. For our use case, we are only interested in our own bot's UTxOs, order UTxOs and the required reference scripts / reference inputs. So we'll run Kupo to keep track of only those UTxOs, note that if we instead run Kupo by matching against star (`*`) pattern, then as Kupo does many disk writes, we would quickly burn out our SSDs TBW limit.
   >
-  > Please see the scripts, [`kupo-preprod.sh`](./scripts/kupo-preprod.sh) for pre-production network and `kupo-mainnet.sh` (to be created) for mainnet network to see how this can be achieved. Note that these two scripts take as an argument the match pattern for bot's UTxOs, you may very well give the bech32 address of bot as value of this argument. To understand what all the script does, please see Kupo's [documentation](https://cardanosolutions.github.io/kupo/#section/Getting-started).
+  > Please see the scripts, [`kupo-preprod.sh`](./scripts/kupo-preprod.sh) for pre-production network and [`kupo-mainnet.sh`](./scripts/kupo-mainnet.sh) for mainnet network to see how this can be achieved. Note that these two scripts take as an argument the match pattern for bot's UTxOs, you may very well give the bech32 address of bot as value of this argument. To understand what all the script does, please see Kupo's [documentation](https://cardanosolutions.github.io/kupo/#section/Getting-started).
 
 ``` bash
 # SMART ORDER ROUTER INSTANCE USING KUPO (existing Kupo instance)
@@ -374,17 +374,13 @@ that is completely placed on the blockchain. That is the validator and the minti
 
 ##### Mainnet
 
-> [!NOTE]
-> The Smart Order Router configuration for the Cardano Mainnet is going to be available as we approach the Mainnet launch date.
-
 ```json
 {
    "validatorRefs":{
-      "refAddr":"",
-      "refNftAC":"",
-      "refNftUtxoRef":"",
-      "scriptRef":"",
-      "nftPolicyRef":""
+      "refAddr": "addr1w9zr09hgj7z6vz3d7wnxw0u4x30arsp5k8avlcm84utptls8uqd0z",
+      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.4aff78908ef2dce98bfe435fb3fd2529747b1c4564dff5adebedf4e46d0fc63d",
+      "scriptRef": "062f97b0e64130bc18b4a227299a62d6d59a4ea852a4c90db3de2204a2cd19ea#2",
+      "nftPolicyRef": "062f97b0e64130bc18b4a227299a62d6d59a4ea852a4c90db3de2204a2cd19ea#1"
    }
 }
 ```
