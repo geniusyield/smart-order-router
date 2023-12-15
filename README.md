@@ -25,8 +25,8 @@
 
 ## Table of contents
 
-- 🎓 [Crash Course](#crash-course-geniusyield-dex-orders--sor)
-- 🚀 [Building and running](#building-and-running)
+- 🎓 [Crash Course](#crash-course-geniusyield-dex-orders-and-the-smart-order-routers)
+- 🚀 [Building and running](#building-and-running-the-smart-order-router)
 - 🧠 [Strategies](#strategies)
 - 🛠️ [Troubleshooting](#troubleshooting)
 - ⚖️ [License](#license)
