@@ -135,7 +135,7 @@ using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 to
 
 ### Running the SOR using Docker
 
-A ready-to-run, containerized version of the Smart Order Router is available via the [GitHub Container Registry](ghcr.io/geniusyield/smart-order-router:latest).
+A ready-to-run, containerized version of the Smart Order Router is available via the [GitHub Container Registry](https://github.com/geniusyield/smart-order-router/pkgs/container/smart-order-router).
 
 A Smart Order Router container instance using the Maestro backend can be started by using the following snippet:
 
