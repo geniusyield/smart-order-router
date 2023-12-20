@@ -351,8 +351,25 @@ the private signing key, the verification key, and the wallet address on the
 preprod testnet. You can claim some **preprod** lovelaces using the
 [faucet](https://docs.cardano.org/cardano-testnet/tools/faucet/).
 
+Read the cbor hex for the private signing key using the following command:
+
+```shell
+cat bot.skey | jq -r '.cborHex'
+```
+
+This is the value assigned to `PAYMENT_SIGNING_KEY_CBOR_HEX` when running the SOR via Docker.
+
 It's **recommended** to create and setup a `collateral`. A UTxO with 5 ADAs will
 do the work. But as we mentioned the `collateral` config field is optional.
+
+Use the following command to find and select the UTXO to be used for collateral:
+
+```shell
+cardano-cli query utxo --address $(cat bot.preprod.addr) --testnet-magic 1
+```
+
+Assign the selected UTXO (hash + index) to `COLLATERAL_UTXO_REF`  when running the SOR via Docker.
+
 
 #### Deployed Contract
 
