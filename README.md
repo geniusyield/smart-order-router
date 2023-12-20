@@ -49,8 +49,8 @@ over the multi-asset order book to obtain a list of matches. The matches are the
 translated into transactions that will be signed and submitted by the bot.
 
 Due to the open and decentralized design of the protocol, anybody can run a Smart Order
-Router instance and collect a share of the fees, thus running a Smart Order Router instance
-is not only contributiung to the further decentralization of the protocol, but it is also
+Router instance and collect the arbitrage opportunities, thus running a Smart Order Router instance
+is not only contributing to the further decentralization of the protocol, but it is also
 incentivized financially.
 
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
@@ -127,6 +127,10 @@ Using the previous example we could have two cases:
 If we want our earnings to be in `tokenA` then the
 commodity must be `tokenB`. So we can buy from the sell order, `20 tokenB` using `8 tokenA`, then
 using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 tokenA`.
+
+> **ⓘ **
+>
+> Note that as per current design of bot, there is a check in end to determine whether the bot would loose balance in case it submits the build transaction. This check subtracts for transaction fees, that is, it might happen that bot may loose ADA when submitting the transaction but that would solely be due to transaction fees. If currency is set to ADA, bot may still loose some ADA if the transaction fees is more than found ADA arbitrage.
 
 ## Building and running the Smart Order Router
 
@@ -394,7 +398,7 @@ Once we compiled and configured the order bot, you can execute the SOR using the
 
 The SOR is equipped with a test suite that employs QuickCheck to perform property-based testing.
 By implementing certain properties, we are able to verify various important aspects of the strategies,
-like for example, given a matching between sell and buy orders there is always a [positive earning](./geniusyield-orderbot/test/Tests/Prop/Strategies.hs#L167-L177).
+like for example, given a matching between sell and buy orders there is always a non-negative earning.
 Among others that can be found on [Tests.Prop.Strategies](./geniusyield-orderbot/test/Tests/Prop/Strategies.hs)
 module.
 
