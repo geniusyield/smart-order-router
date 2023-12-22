@@ -365,13 +365,14 @@ do the work. But as we mentioned the `collateral` config field is optional.
 Use the following command to find and select the UTXO to be used for collateral:
 
 ```shell
-cardano-cli query utxo --address $(cat bot.preprod.addr) --testnet-magic 1
+cardano-cli query utxo --address $(cat bot.preprod.addr) --mainnet
 ```
 
-(Replace `--testnet-magic 1` with `--mainnet` for mainnet.)
+(For running in preprod, replace `--mainnet` with `--testnet-magic 1`)
 
 Assign the selected UTXO (hash + index) to `COLLATERAL_UTXO_REF`  when running the SOR via Docker.
 
+Optionally, the UTXO information can also be obtained from a block explorer service such as https://cexplorer.io/
 
 #### Deployed Contract
 
