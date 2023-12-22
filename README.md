@@ -368,6 +368,8 @@ Use the following command to find and select the UTXO to be used for collateral:
 cardano-cli query utxo --address $(cat bot.preprod.addr) --testnet-magic 1
 ```
 
+(Replace `--testnet-magic 1` with `--mainnet` for mainnet.)
+
 Assign the selected UTXO (hash + index) to `COLLATERAL_UTXO_REF`  when running the SOR via Docker.
 
 
