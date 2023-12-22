@@ -372,7 +372,7 @@ cardano-cli query utxo --address $(cat bot.preprod.addr) --mainnet
 
 Assign the selected UTXO (hash + index) to `COLLATERAL_UTXO_REF`  when running the SOR via Docker.
 
-Optionally, the UTXO information can also be obtained from a block explorer service such as https://cexplorer.io/
+Alternatively, the UTXO information can also be obtained from a block explorer service such as https://cexplorer.io/
 
 #### Deployed Contract
 
