@@ -130,7 +130,10 @@ using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 to
 
 > **ⓘ **
 >
-> Note that as per current design of bot, there is a check in end to determine whether the bot would loose balance in case it submits the build transaction. This check subtracts for transaction fees, that is, it might happen that bot may loose ADA when submitting the transaction but that would solely be due to transaction fees. If currency is set to ADA, bot may still loose some ADA if the transaction fees is more than found ADA arbitrage.
+> Note that there is a check in the end which does the following before submitting any transaction: 
+>
+> * In case "currency" is set to ADA for all `scanTokens` then this check guarantees that bot doesn't lose any funds by submitting the built transaction.
+> * For other case, since arbitrage isn't guaranteed to be in ADA but as transaction fees must be paid in ADA, this check guarantees that bot doesn't lose any non-ADA token and doesn't lose any ADA besides transaction fees.
 
 ## Building and running the Smart Order Router
 
