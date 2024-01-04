@@ -153,7 +153,7 @@ If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we 
 ## Building and running the Smart Order Router
 
 > [!NOTE]
-> In order to run Smart Order Router instances for the public testnet, please use the preprod testnet as in the examples below.
+> To run a Smart Order Router instance for the [public testnet](https://testnet.geniusyield.co/), please use the preprod testnet.
 
 ### Running the SOR using Docker
 
