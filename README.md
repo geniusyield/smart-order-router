@@ -33,7 +33,7 @@
 
 ## Overview
 
-Smart Order Routers play a crutial role in the operation of the [Genius Yield Decentralized Exchange](https://www.geniusyield.co/).
+Smart Order Routers play a crucial role in the operation of the [Genius Yield Decentralized Exchange](https://www.geniusyield.co/).
 
 Smart Order Routers (SORs) are off-chain agents that execute a routing algorithm that scans 
 the Cardano blockchain for open limit orders, matches them based on their trigger conditions,
@@ -51,7 +51,7 @@ these are profitable to execute.
 
 Thanks to the open and decentralized design of the protocol, anybody can run a Smart Order
 Router instance and collect a share of the fees, thus running a Smart Order Router instance
-is not only contributiung to the further decentralization of the protocol, but it is also
+is not only contributing to the further decentralization of the protocol, but it is also
 incentivized financially and might be a very lucrative activity.
 
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
@@ -75,12 +75,12 @@ Let's say that the owner of the order in this case is the reader.
 It's important to mention that all of these information is **mandatory**. The offered amount, the price and the owner must be all set.
 
 Optionally it is possible to set a lifespan for the Order. Setting start and end time of the validity of the order can be used to created
-an order that could be filled only during the timespan defined by these contstraints.
+an order that could be filled only during the timespan defined by these constraints.
 
 Once we create an GY order on-chain by submitting a transaction, the offered tokens will be locked in the order. In the example above, the
 `10 GENS` will be locked in the on-chain order on creation. 
 
-Two different "actions" might be performed on an existing on-chain order: cancelling and filling.
+Two different "actions" might be performed on an existing on-chain order: canceling and filling.
 
 Only the owner might _cancel_ an order created by him and redeem the tokens that had been previously locked in the order instance on creation.
 
@@ -99,7 +99,7 @@ For the end user it is transparent that there are two kinds of order fills: _com
 A complete fill will buy all the offered tokens from the order, and for the partial fill, we need to specify the amount we want
 to buy from the order.
 
-For those who want to improve matching strategy implementation or imlement completely new strategies,
+For those who want to improve matching strategy implementation or implement completely new strategies,
 this is highly relevant, since it is possible to design different matching strategies using these two different type of fills.
 
 Up to this point, we quickly covered the key actions that can be performed over the orders.
