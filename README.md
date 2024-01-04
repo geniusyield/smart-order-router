@@ -42,65 +42,88 @@ Each Smart Swap encodes trigger conditions that the SOR must fulfill to execute 
 The SOR continuously scans and analyzes the current state of the limit orders on-chain and relies on
 the configured matching strategy to best execute a customer’s order based on price.
 
-Specifically, the bot periodically builds a multi-asset order book consisting of one
+Specifically, the SOR periodically builds a multi-asset order book consisting of one
 order book for each token pair listed in its configuration. Each order book contains
 only sell and buy orders for the same pair of tokens. The bot runs the selected strategy
 over the multi-asset order book to obtain a list of matches. The matches are then
-translated into transactions that will be signed and submitted by the bot.
+translated into actual transactions that will be signed and submitted by the bot, if
+these are profitable to execute.
 
-Due to the open and decentralized design of the protocol, anybody can run a Smart Order
+Thanks to the open and decentralized design of the protocol, anybody can run a Smart Order
 Router instance and collect a share of the fees, thus running a Smart Order Router instance
 is not only contributiung to the further decentralization of the protocol, but it is also
-incentivized financially.
+incentivized financially and might be a very lucrative activity.
 
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
-Let's start with a concrete and short overview of the GY DEX Orders, to provide some context,
-so the reader could better understand the purpose of the Smart Order Routers and how they could
-benefit from customizing existing order matching strategies or even implementing completely new strategies from scratch.
+Let's start with a brief overview of the GY DEX Orders, to provide some context, so the reader could better understand
+the purpose of the Smart Order Routers and how they could benefit from customizing existing order matching strategies
+or even implementing completely new strategies from scratch.
 
 For a more detailed description, please see the [Genius Yield Whitepaper](https://www.geniusyield.co/whitepaper.pdf?lng=en).
 
 Given a pair of tokens, an order will contain the number of tokens it offers and the price of one unit of offered token in terms of asked tokens.
 Besides that, the order will have some life timeline and, of course, a notion of ownership
-related to the one that created it. For example, we could create an order offering of `10 tokenA`,
-with a unit price of `2 tokenB`, that is, we expect to receive `2 tokenB` per `1 tokenA`. Clearly, the owners of this order will be
-us and it's important to mention that all this information is **mandatory**, but we can avoid setting
-the life timeline, meaning the order will always be available. Once we create an order, the offered
-tokens will be locked on the order.
+related to the one that created it.
 
-Given an specific order, two interesting "actions" might be performed on it. The owner can cancel
-it and get back the previously locked tokens. Or anyone can _fill_ it, filling an order is just paying
-the correct amount of tokens the owner of the order expects to receive related to the
-amount of tokens we want to buy from that order. Following the previous example, anyone
-could fill that order by buying from it `6 tokenA` and paying `12 tokenB`.
+For example, we could create an order by offering `10 GENS`, with a unit price of `2 ADA`, so we expect to receive `2 ADA` for each `GENS` token.
 
-One important thing to mention, that is actually completely transparent for the end user,
-is that there are two kinds of fills: _complete_ and _partial_. A complete fill will buy all 
-the offered tokens from the order, and for the partial fill, we need to specify the amount we want
-to buy from the order. For those of us, who will be not only running an SOR instance, but probably even improve the
-matching strategy implementation, this is highly relevant since, as we will see in a moment,
-it is possible to design different matching strategies using these two different type of fills.
+Not only the amount of the offered tokens and the price, but the owner of the order must be set as well.
+
+Let's say that the owner of the order in this case is the reader.
+
+It's important to mention that all of these information is **mandatory**. The offered amount, the price and the owner must be all set.
+
+Optionally it is possible to set a lifespan for the Order. Setting start and end time of the validity of the order can be used to created
+an order that could be filled only during the timespan defined by these contstraints.
+
+Once we create an GY order on-chain by submitting a transaction, the offered tokens will be locked in the order. In the example above, the
+`10 GENS` will be locked in the on-chain order on creation. 
+
+Two different "actions" might be performed on an existing on-chain order: cancelling and filling.
+
+Only the owner might _cancel_ an order created by him and redeem the tokens that had been previously locked in the order instance on creation.
+
+Anyone can _fill_ a particular on-chain order.
+
+Filling an order means to pay the correct amount of tokens the owner of the order configured to receive for the offered tokens in exchange.
+
+The Genius Yield DEX supports partial fills as well. This means that an Order might be filled in several steps and not only by a single
+transaction.
+
+For example in the case of the previous example, anyone could fill that order by buying `6 GENS` from it by paying `12 ADA`. Please note that
+the remaining `4 GENS` are still going to be available for sale (for `2 ADA` each).
+
+For the end user it is transparent that there are two kinds of order fills: _complete_ and _partial_.
+
+A complete fill will buy all the offered tokens from the order, and for the partial fill, we need to specify the amount we want
+to buy from the order.
+
+For those who want to improve matching strategy implementation or imlement completely new strategies,
+this is highly relevant, since it is possible to design different matching strategies using these two different type of fills.
 
 Up to this point, we quickly covered the key actions that can be performed over the orders.
 There shouldn't be any surprise if we mention that each action is performed by a transaction.
 
-Now, let's suppose, besides the previous order, we have another one offering of `20 tokenB`,
-with a unit price of `0.4 tokenA`. We could earn some tokens by “combining” the two orders
-and take advantage of the price difference. Following the example, given we bought `8 tokenA`
-using `16 tokenB`, we now can use these `8 tokenA` to buy back `20 tokenB` from this other
-order, earning `4 tokenB`. These two fills can be combined into a single transaction, in
-fact, we could combine more than two orders.
+Let's say that we have one more order offering of `20 GENS`, with a unit price of `0.4 ADA`.
 
-The SOR has the ability to build these transactions matching orders programmatically,
-that is, combining orders into a single transaction. Which orders the SOR will match is
-determined by the strategy that must be configured in advance. To reason about any strategy,
-we need to classify orders into sell or buy. It's possible for an order to be a buy or sell,
-depending on the token used to earn the difference between the orders. In the previous example,
-we earned in `tokenB`, but we could have earned in `tokenA`. So, given a token pair, we will
-specify which token is the commodity and which is the currency, which will establish if a
-given order is a sell order or a buy order: If the order offers commodity, then it will
-be classified as a sell order. On the other hand, if the order involves buying the
+We could earn some tokens by “combining” the two orders and take advantage of the price difference.
+
+Following the example, given we bought `8 GENS` using `16 ADA`, we now can use these `8 GENS`
+to buy back `20 ADA` from this other order, earning `4 ADA`.
+
+These two fills can be combined into a single transaction, in fact, we could combine more than two orders.
+
+The SOR can build these transactions matching orders programmatically, that is, combining orders into a single transaction.
+Which orders the SOR will match is determined by the strategy that must be configured in advance.
+To reason about any strategy, we need to classify orders into sell or buy. It's possible for an order to be a buy or sell,
+depending on the token used to earn the difference between the orders.
+
+In the previous example, we earned in `ADA`, but we could have earned in `GENS`.
+
+So, given a token pair, we will specify which token is the commodity and which is the currency,
+which will establish if a given order is a sell order or a buy order: If the order offers commodity,
+then it will be classified as a sell order. On the other hand, if the order involves buying the
 commodity with currency (that is offers currency), it will be considered a buy order.
 
 Using the previous example we could have two cases:
@@ -111,22 +134,21 @@ Using the previous example we could have two cases:
 
 |  Amount     |    Price      |  Type  |
 |:-----------:|:-------------:|:------:|
-| `10 tokenA` |  `2 tokenB`   | Sell   |
-| `8 tokenA`  |  `2.5 tokenB` | Buy    |
+| `10 GENS`   |  `2 ADA`      | Sell   |
+| `8 GENS`    |  `2.5 ADA`    | Buy    |
 
 </td><td>
 
 |  Amount     |    Price       |  Type  |
 |:-----------:|:--------------:|:------:|
-| `20 tokenB` |  `0.4 tokenA`  | Sell   |
-| `20 tokenB` |  `0.5 tokenA`  | Buy    |
+| `20 ADA`    |  `0.4 GENS`    | Sell   |
+| `20 ADA`    |  `0.5 GENS`    | Buy    |
 
 </td></tr>
 </table>
 
-If we want our earnings to be in `tokenA` then the
-commodity must be `tokenB`. So we can buy from the sell order, `20 tokenB` using `8 tokenA`, then
-using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 tokenA`.
+If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we can buy from the sell order,
+`20 ADA` using `8 GENS`, then using these `20 ADA` we can get `10 GENS` from the buy order, earning `2 GENS`.
 
 ## Building and running the Smart Order Router
 
@@ -136,6 +158,18 @@ using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 to
 ### Running the SOR using Docker
 
 A ready-to-run, containerized version of the Smart Order Router is available via the [GitHub Container Registry](https://github.com/geniusyield/smart-order-router/pkgs/container/smart-order-router).
+
+There are several options to run an SOR instance. One could use the service provided by Maestro and configure the SOR instance to use this
+as backend provider. For such deployments a Maestro API key is needed.
+
+A Maestro API key is available after registration via the following URL:
+ - https://docs.gomaestro.org/Getting-started/Sign-up-login
+
+As alternive; Blockfrost could be also used as backend provider. For Blockfrost backed SOR instances, a Blockfrost API key is needed.
+
+The third option is to run your own Cardano Node and use Kupo to index the on-chain data.
+
+For examples for all of these three please see the rest of the chapter.
 
 A Smart Order Router container instance using the Maestro backend can be started by using the following snippet:
 
@@ -180,14 +214,6 @@ docker run -it \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
 
-And the following commands can be used to start a Kupo backed instance, if you want to use an existing Kupo instance:
-
-  > **ⓘ How to run Kupo efficiently?**
-  >
-  > Firstly, Kupo requires a node running, note that node itself maintains efficient access to information such as current protocol parameters, current set of pool ids, etc. but it doesn't efficiently provide us with UTxOs when say queried by a particular address. Kupo helps in covering this gap and gives us efficient lookup tables to query for UTxOs. For our use case, we are only interested in our own bot's UTxOs, order UTxOs and the required reference scripts / reference inputs. So we'll run Kupo to keep track of only those UTxOs, note that if we instead run Kupo by matching against star (`*`) pattern, then as Kupo does many disk writes, we would quickly burn out our SSDs TBW limit.
-  >
-  > Please see the scripts, [`kupo-preprod.sh`](./scripts/kupo-preprod.sh) for pre-production network and [`kupo-mainnet.sh`](./scripts/kupo-mainnet.sh) for mainnet network to see how this can be achieved. Note that these two scripts take as an argument the match pattern for bot's UTxOs, you may very well give the bech32 address of bot as value of this argument. To understand what all the script does, please see Kupo's [documentation](https://cardanosolutions.github.io/kupo/#section/Getting-started).
-
 ``` bash
 # SMART ORDER ROUTER INSTANCE USING KUPO (existing Kupo instance)
 # ===============================================================
@@ -216,6 +242,15 @@ PAYMENT_SIGNING_KEY_CBOR_HEX=5820d682e237a04d43ad011fdecd141acd485f6d3d634466692
 COLLATERAL_UTXO_REF=7cc7b044d26981d3fc73ae72994f289d99ba113ceefb5b83f4d7643bfb12682a#1 \
 docker compose up
 ```
+
+Kupo can be run in a docker container, but there is also a helper script to start an instance locally ([`kupo-preprod.sh`](./scripts/kupo-preprod.sh)).
+
+  > [!NOTE]
+  > **How to run Kupo efficiently?**
+  >
+  > Firstly, Kupo requires a node running, note that node itself maintains efficient access to information such as current protocol parameters, current set of pool ids, etc. but it doesn't efficiently provide us with UTxOs when say queried by a particular address. Kupo helps in covering this gap and gives us efficient lookup tables to query for UTxOs. For our use case, we are only interested in our own bot's UTxOs, order UTxOs and the required reference scripts / reference inputs. So we'll run Kupo to keep track of only those UTxOs, note that if we instead run Kupo by matching against star (`*`) pattern, then as Kupo does many disk writes, we would quickly burn out our SSDs TBW limit.
+  >
+  > Please see the scripts, [`kupo-preprod.sh`](./scripts/kupo-preprod.sh) for pre-production network and [`kupo-mainnet.sh`](./scripts/kupo-mainnet.sh) for mainnet network to see how this can be achieved. Note that these two scripts take as an argument the match pattern for bot's UTxOs, you may very well give the bech32 address of bot as value of this argument. To understand what all the script does, please see Kupo's [documentation](https://cardanosolutions.github.io/kupo/#section/Getting-started).
 
 ### Building the SOR using docker
 
