@@ -189,7 +189,9 @@ docker run -it \
 
 And the following commands can be used to start a Kupo backed instance, if you want to use an existing Kupo instance:
 
-  > [!TIP] **How to run Kupo efficiently?**
+  > [!TIP] 
+  >
+  > **How to run Kupo efficiently?**
   >
   > Firstly, Kupo requires a node running, note that node itself maintains efficient access to information such as current protocol parameters, current set of pool ids, etc. but it doesn't efficiently provide us with UTxOs when say queried by a particular address. Kupo helps in covering this gap and gives us efficient lookup tables to query for UTxOs. For our use case, we are only interested in our own bot's UTxOs, order UTxOs and the required reference scripts / reference inputs. So we'll run Kupo to keep track of only those UTxOs, note that if we instead run Kupo by matching against star (`*`) pattern, then as Kupo does many disk writes, we would quickly burn out our SSDs TBW limit.
   >
