@@ -128,9 +128,9 @@ If we want our earnings to be in `tokenA` then the
 commodity must be `tokenB`. So we can buy from the sell order, `20 tokenB` using `8 tokenA`, then
 using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 tokenA`.
 
-> **ⓘ **
+> [!IMPORTANT]
 >
-> Note that there is a check in the end which does the following before submitting any transaction: 
+> There is a check in the end which does the following before submitting any transaction:
 >
 > * In case "currency" is set to ADA for all `scanTokens` then this check guarantees that bot doesn't lose any funds by submitting the built transaction.
 > * For other case, since arbitrage isn't guaranteed to be in ADA but as transaction fees must be paid in ADA, this check guarantees that bot doesn't lose any non-ADA token and doesn't lose any ADA besides transaction fees.
