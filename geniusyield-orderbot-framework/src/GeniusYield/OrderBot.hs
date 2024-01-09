@@ -306,7 +306,7 @@ notLosingTokensCheck netId providers botAddr oapFilter (txBody, matchesToExecute
             utxosLovelaceAndFilteredValueAtAddr $ txBodyUTxOs txBody
 
         fees = txBodyFee txBody
-        lovelaceCheck = inputLovelace - outputLovelace <= fees
+        lovelaceCheck = if all currencyIsLovelace oapFilter then outputLovelace >= inputLovelace else inputLovelace - outputLovelace <= fees
 
         filteredACCheck  =
             all (\ac -> valueAssetClass filteredACInput ac
@@ -350,6 +350,9 @@ notLosingTokensCheck netId providers botAddr oapFilter (txBody, matchesToExecute
       utxosLovelaceAndFilteredValueAtAddr utxos =
           second (valueFromList . filter (botAssetFilter . fst) . valueToList) $
           valueSplitAda $ utxosValueAtAddr utxos
+
+      currencyIsLovelace :: OrderAssetPair -> Bool
+      currencyIsLovelace oap = currencyAsset oap == GYLovelace
 
 -------------------------------------------------------------------------------
 -- Helpers
