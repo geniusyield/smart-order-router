@@ -49,10 +49,10 @@ over the multi-asset order book to obtain a list of matches. The matches are the
 translated into actual transactions that will be signed and submitted by the bot, if
 these are profitable to execute.
 
-Thanks to the open and decentralized design of the protocol, anybody can run a Smart Order
-Router instance and collect a share of the fees, thus running a Smart Order Router instance
-is not only contributing to the further decentralization of the protocol, but it is also
-incentivized financially and might be a very lucrative activity.
+Due to the open and decentralized design of the protocol, anybody can run a Smart Order
+Router instance and profit from the arbitrage opportunities, thus running a Smart Order
+Router instance is not only contributing to the further decentralization of the protocol,
+but it is also incentivized financially and it might be a very lucrative activity.
 
 ## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
 
@@ -150,6 +150,13 @@ Using the previous example we could have two cases:
 If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we can buy from the sell order,
 `20 ADA` using `8 GENS`, then using these `20 ADA` we can get `10 GENS` from the buy order, earning `2 GENS`.
 
+> [!IMPORTANT]
+>
+> There is a check in the end which does the following before submitting any transaction:
+>
+> * In case "currency" is set to ADA for all `scanTokens` then this check guarantees that bot doesn't lose any funds by submitting the built transaction.
+> * For other case, since arbitrage isn't guaranteed to be in ADA but as transaction fees must be paid in ADA, this check guarantees that bot doesn't lose any non-ADA token and doesn't lose any ADA besides transaction fees.
+
 ## Building and running the Smart Order Router
 
 > [!NOTE]
@@ -213,6 +220,8 @@ docker run -it \
     -e BOTC_CONFIG="{ \"coreProvider\": { \"blockfrostKey\": \"$BLOCKFROST_API_KEY\" }, \"networkId\": \"$CARDANO_NETWORK\", \"logging\": [{ \"type\": { \"tag\": \"stderr\" }, \"severity\": \"Info\", \"verbosity\": \"V2\" }],\"utxoCacheEnable\": false }" \
     ghcr.io/geniusyield/smart-order-router:latest
 ```
+
+And the following commands can be used to start a Kupo backed instance, if you want to use an existing Kupo instance:
 
 ``` bash
 # SMART ORDER ROUTER INSTANCE USING KUPO (existing Kupo instance)
@@ -449,7 +458,7 @@ Once we compiled and configured the order bot, you can execute the SOR using the
 
 The SOR is equipped with a test suite that employs QuickCheck to perform property-based testing.
 By implementing certain properties, we are able to verify various important aspects of the strategies,
-like for example, given a matching between sell and buy orders there is always a [positive earning](./geniusyield-orderbot/test/Tests/Prop/Strategies.hs#L167-L177).
+like for example, given a matching between sell and buy orders there is always a non-negative earning.
 Among others that can be found on [Tests.Prop.Strategies](./geniusyield-orderbot/test/Tests/Prop/Strategies.hs)
 module.
 
