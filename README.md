@@ -155,7 +155,7 @@ Reliable and blasingly fast internet connection
 
 The Smart Order Router does not require a lot of resources, but if you choose to use the Kupo provider and run the Cardano Node yourself, that needs much more resources, especially on the Cardano Mainnet.
 
-For the exact requirements please see current Cardano Node documentation
+For the exact requirements please see current Cardano Node documentation.
 
 ### Running the SOR using Docker
 
