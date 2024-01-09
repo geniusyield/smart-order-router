@@ -140,6 +140,23 @@ using these `20 tokenB` we can get `10 tokenA` from the buy order, earning `2 to
 > [!NOTE]
 > In order to run Smart Order Router instances for the public testnet, please use the preprod testnet as in the examples below.
 
+
+## Running the SOR: System requirements
+
+Minimum System Requirements:
+Memory: 500 MB
+CPU: 0.5vCPU (2.25 GHz CPU Base Frequency)
+Reliable and fast internet connection
+
+Recommended System Requirements:
+Memory: 1GB
+CPU: 1vCPU (2.25 GHz CPU Base Frequency)
+Reliable and blasingly fast internet connection
+
+The Smart Order Router does not require a lot of resources, but if you choose to use the Kupo provider and run the Cardano Node yourself, that needs much more resources, especially on the Cardano Mainnet.
+
+For the exact requirements please see current Cardano Node documentation
+
 ### Running the SOR using Docker
 
 A ready-to-run, containerized version of the Smart Order Router is available via the [GitHub Container Registry](https://github.com/geniusyield/smart-order-router/pkgs/container/smart-order-router).
