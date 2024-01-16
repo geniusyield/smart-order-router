@@ -166,14 +166,14 @@ If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we 
 ## Running the SOR: System requirements
 
 Minimum System Requirements:
-Memory: 500 MB
-CPU: 0.5vCPU (2.25 GHz CPU Base Frequency)
-Reliable and fast internet connection
+- Memory: 500 MB
+- CPU: 0.5vCPU (2.25 GHz CPU Base Frequency)
+- Reliable and fast internet connection
 
 Recommended System Requirements:
-Memory: 1GB
-CPU: 1vCPU (2.25 GHz CPU Base Frequency)
-Reliable and blasingly fast internet connection
+- Memory: 1GB
+- CPU: 1vCPU (2.25 GHz CPU Base Frequency)
+- Reliable and blasingly fast internet connection
 
 The Smart Order Router does not require a lot of resources, but if you choose to use the Kupo provider and run the Cardano Node yourself, that needs much more resources, especially on the Cardano Mainnet.
 
