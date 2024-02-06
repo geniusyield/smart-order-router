@@ -54,6 +54,8 @@ data OrderBotConfig =
     OrderBotConfig
     { botCSkey                  :: Either FilePath GYPaymentSigningKey
     -- ^ Signing key of the bot.
+    , botCStakeAddress          :: Maybe GYStakeAddressBech32
+    -- ^ Optional bech32 encoded stake address.
     , botCCollateral            :: Maybe GYTxOutRef
     {- ^ UTxO ref of the collateral UTxO in the bot's wallet.
 
@@ -98,6 +100,7 @@ instance FromEnv OrderBotConfig where
     fromEnv _ =
         OrderBotConfig
         <$> (Right . parseCBORSKey <$> env "BOTC_SKEY")
+        <*> (fmap fromString <$> envMaybe "BOTC_STAKE_ADDRESS")
         <*> (fmap fromString <$> envMaybe "BOTC_COLLATERAL")
         <*> envWithMsg ("Invalid Strategy. Must be one of: " ++ show allStrategies) "BOTC_EXECUTION_STRAT"
         <*> (parseArray <$> env "BOTC_ASSET_FILTER")
@@ -133,6 +136,7 @@ envWithMsg msg name = maybe (throwError $ unwords ["Error parsing enviroment var
 instance FromJSON OrderBotConfig where
     parseJSON (Object obj) = OrderBotConfig
         <$> (Left <$> obj .: "signingKeyFP")
+        <*> obj .:? "stakeAddress"
         <*> obj .:? "collateral"
         <*> obj .: "strategy"
         <*> (parseScanTokenPairs =<< obj .: "scanTokens")
@@ -179,6 +183,7 @@ instance FromJSON PORConfig where
 buildOrderBot :: OrderBotConfig -> IO OrderBot
 buildOrderBot OrderBotConfig
     { botCSkey
+    , botCStakeAddress
     , botCCollateral
     , botCExecutionStrat
     , botCAssetFilter
@@ -196,6 +201,7 @@ buildOrderBot OrderBotConfig
         else throwIO $ userError "Can't have equivalent order asset pairs scanTokens"
     return $ OrderBot
         { botSkey            = skey
+        , botStakeAddress    = botCStakeAddress
         , botCollateral      = buildCollateral
         , botExecutionStrat  =
             MultiAssetTraverse $ mkIndependentStrategy botCExecutionStrat maxOrderMatch

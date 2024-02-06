@@ -23,7 +23,7 @@ import           Data.Aeson                            (ToJSON, encode)
 import           Data.Foldable                         (foldl', toList)
 import           Data.Functor                          ((<&>))
 import           Data.Functor.Identity                 (runIdentity)
-import           Data.List                             (find)
+import           Data.List                             (find, nub)
 import           Data.Maybe                            (mapMaybe)
 
 import           System.Exit                           (exitSuccess)
@@ -72,6 +72,8 @@ import           GeniusYield.Transaction               (BuildTxException,
 data OrderBot = OrderBot
     { botSkey            :: !GYPaymentSigningKey
     -- ^ Signing key of the bot.
+    , botStakeAddress    :: !(Maybe GYStakeAddressBech32)
+    -- ^ Optional bech32 encoded stake address.
     , botCollateral      :: !(Maybe (GYTxOutRef, Bool))
     {- ^ UTxO ref of the collateral UTxO in the bot's wallet.
 
@@ -115,6 +117,7 @@ runOrderBot
     di
     OrderBot
     { botSkey
+    , botStakeAddress
     , botCollateral
     , botExecutionStrat = MultiAssetTraverse strat
     , botAssetPairFilter
@@ -127,8 +130,9 @@ runOrderBot
             logDebug = gyLogDebug providers "SOR"
 
             netId   = cfgNetworkId cfg
-            botPkh  = pubKeyHash $ paymentVerificationKey botSkey
-            botAddr = addressFromPubKeyHash netId botPkh
+            botPkh  = paymentKeyHash $ paymentVerificationKey botSkey
+            botChangeAddr = addressFromCredential netId (GYPaymentCredentialByKey botPkh) (stakeAddressToCredential . stakeAddressFromBech32 <$> botStakeAddress)
+            botAddrs = nub [addressFromPaymentKeyHash netId botPkh, botChangeAddr]
 
             por     = dexPORefs di
             dex     = mkDEX (dexNftPolicy di)
@@ -140,8 +144,9 @@ runOrderBot
         logInfo $ unlines
             [ ""
             , "Starting bot with given credentials"
-            , "  Public key hash: "       ++ show (pubKeyHashToPlutus botPkh)
-            , "  Address: "               ++ Txt.unpack (addressToText botAddr)
+            , "  Payment key hash: "      ++ show (paymentKeyHashToPlutus botPkh)
+            , "  Addresses: "             ++ show (Txt.unpack . addressToText <$> botAddrs)
+            , "  Change Address: "        ++ (Txt.unpack . addressToText $ botChangeAddr)
             , "  Collateral: "            ++ show botCollateral
             , "  Reference Script ref: "  ++ show (porValidatorRef por)
             , "  Reference Minting ref: " ++ show (porNftPolicyRef por)
@@ -194,14 +199,14 @@ runOrderBot
                                   ]
 
                 -- We first build all the tx Bodies from the matches
-                txs <- buildTransactions matchesToExecute di netId providers botAddr botCollateral
+                txs <- buildTransactions matchesToExecute di netId providers (botAddrs, botChangeAddr) botCollateral
 
                 logInfo $ unwords [ "Number Of Matches Built:"
                                   , show $ length txs
                                   ]
 
                 -- We filter the txs that are not losing tokens
-                profitableTxs <- filterM (notLosingTokensCheck netId providers botAddr botAssetPairFilter)
+                profitableTxs <- filterM (notLosingTokensCheck netId providers botAddrs botAssetPairFilter)
                                          txs
 
                 logInfo $ unwords [ "Transactions are losing money:"
@@ -248,15 +253,15 @@ buildTransactions
     -> DEXInfo
     -> GYNetworkId
     -> GYProviders
-    -> GYAddress
+    -> ([GYAddress], GYAddress)
     -> Maybe (GYTxOutRef, Bool)
     -> IO [(GYTxBody, MatchResult)]
 buildTransactions matchesToExecute di netId
-                  providers botAddr botCollateral = handle handlerBuildTx $ do
+                  providers (botAddrs, botChangeAddr) botCollateral = handle handlerBuildTx $ do
 
     res <- runGYTxMonadNodeParallelWithStrategy
                GYLegacy
-               netId providers [botAddr] botAddr
+               netId providers botAddrs botChangeAddr
                botCollateral $ traverse resultToSkeleton matchesToExecute
 
     case res of
@@ -288,11 +293,11 @@ buildTransactions matchesToExecute di netId
 notLosingTokensCheck
     :: GYNetworkId
     -> GYProviders
-    -> GYAddress
+    -> [GYAddress]
     -> [OrderAssetPair]
     -> (GYTxBody, MatchResult)
     -> IO Bool
-notLosingTokensCheck netId providers botAddr oapFilter (txBody, matchesToExecute) = do
+notLosingTokensCheck netId providers botAddrs oapFilter (txBody, matchesToExecute) = do
     let logDebug = gyLogDebug providers "SOR"
         logWarn  = gyLogWarning providers "SOR"
         matchesRefs = map matchExecutionInfoUtxoRef matchesToExecute
@@ -342,7 +347,7 @@ notLosingTokensCheck netId providers botAddr oapFilter (txBody, matchesToExecute
 
       utxosValueAtAddr :: GYUTxOs -> GYValue
       utxosValueAtAddr = mconcat . map utxoValue .
-                         filter ((== botAddr) . utxoAddress) . utxosToList
+                         filter ((`elem` botAddrs) . utxoAddress) . utxosToList
 
       utxosLovelaceAndFilteredValueAtAddr
           :: GYUTxOs

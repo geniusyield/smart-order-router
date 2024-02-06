@@ -15,7 +15,6 @@ module GeniusYield.DEX.Api.PartialOrderConfig
     , fetchPartialOrderConfig
     ) where
 
-import qualified Cardano.Api                as Api
 import           Data.Text                  (pack)
 import           Network.HTTP.Types         (status400)
 
@@ -29,7 +28,6 @@ import qualified PlutusLedgerApi.V1         as Plutus
 import           PlutusTx                   (BuiltinData,
                                              FromData (fromBuiltinData))
 import qualified PlutusTx
-import           PlutusTx.Builtins.Internal (BuiltinByteString (..))
 import           PlutusTx.Ratio             as PlutusTx (Rational)
 
 data PartialOrderConfigDatum = PartialOrderConfigDatum
@@ -114,13 +112,3 @@ fetchPartialOrderConfig addr nftToken = do
             feeAddr    <- addressFromPlutus' $ pociFeeAddr d'
             pure (utxoRef utxo, feeAddr <$ d')
         _                  -> throwAppError $ PocdException nftToken
-
-mintingPolicyIdFromCurrencySymbol :: Plutus.CurrencySymbol -> Either PlutusToCardanoError GYMintingPolicyId
-mintingPolicyIdFromCurrencySymbol cs =
-  let
-    BuiltinByteString bs = Plutus.unCurrencySymbol cs
-  in
-    case Api.deserialiseFromRawBytes Api.AsPolicyId bs of
-        Left e    -> Left $ DeserialiseRawBytesError $ pack $
-            "mintingPolicyIdFromCurrencySymbol: " <> show cs <> ", error: " <> show e
-        Right pid -> Right $ mintingPolicyIdFromApi pid
