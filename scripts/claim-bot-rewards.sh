@@ -28,7 +28,7 @@ curl 'https://api.geniusyield.co/user/connect' \
   --data-raw "{\"walletStakeKeyHash\":\"$PKH\",\"userType\":\"INDIVIDUAL\"}" \
   --compressed > /dev/null 2>&1
 
-DATA="{\"walletAddress\":$CBOR,\"walletRewardAddresses\":[\"e1$PKH\"],\"walletStakeKeyHash\":\"$PKH\",\"collateralUtxo\":[\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\"],\"walletUnusedAddresses\":[$CBOR],\"walletUsedAddresses\":[$CBOR]}"
+DATA="{\"walletAddress\":$CBOR,\"walletRewardAddresses\":[\"e1$PKH\"],\"walletStakeKeyHash\":\"$PKH\",\"collateralUtxo\":[\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\"],\"walletUnusedAddresses\":[],\"walletUsedAddresses\":[$CBOR]}"
 
 PAYLOAD=$(curl -s 'https://api.geniusyield.co/yield-farming/rewards/claim' \
   -H "authorization: WalletStakeKeyHash $PKH" \
