@@ -23,7 +23,7 @@ import           Data.Aeson                            (ToJSON, encode)
 import           Data.Foldable                         (foldl', toList)
 import           Data.Functor                          ((<&>))
 import           Data.Functor.Identity                 (runIdentity)
-import           Data.List                             (find, nub)
+import           Data.List                             (find)
 import           Data.Maybe                            (mapMaybe)
 
 import           System.Exit                           (exitSuccess)
@@ -132,7 +132,7 @@ runOrderBot
             netId   = cfgNetworkId cfg
             botPkh  = paymentKeyHash $ paymentVerificationKey botSkey
             botChangeAddr = addressFromCredential netId (GYPaymentCredentialByKey botPkh) (stakeAddressToCredential . stakeAddressFromBech32 <$> botStakeAddress)
-            botAddrs = nub [addressFromPaymentKeyHash netId botPkh, botChangeAddr]
+            botAddrs = [botChangeAddr]
 
             por     = dexPORefs di
             dex     = mkDEX (dexNftPolicy di)
