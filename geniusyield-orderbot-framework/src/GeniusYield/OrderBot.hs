@@ -145,7 +145,7 @@ runOrderBot
             [ ""
             , "Starting bot with given credentials"
             , "  Payment key hash: "      ++ show (paymentKeyHashToPlutus botPkh)
-            , "  Addresses: "             ++ show (Txt.unpack . addressToText <$> botAddrs)
+            , "  Wallet Addresses: "      ++ show (Txt.unpack . addressToText <$> botAddrs)
             , "  Change Address: "        ++ (Txt.unpack . addressToText $ botChangeAddr)
             , "  Collateral: "            ++ show botCollateral
             , "  Reference Script ref: "  ++ show (porValidatorRef por)
