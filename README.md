@@ -28,6 +28,7 @@
 - 🎓 [Crash Course](#crash-course-geniusyield-dex-orders-and-the-smart-order-routers)
 - 🚀 [Building and running](#building-and-running-the-smart-order-router)
 - 🧠 [Strategies](#strategies)
+- 💰 [Yield Accelerator Rewards](#yield-accelerator-rewards)
 - 🛠️ [Troubleshooting](#troubleshooting)
 - ⚖️ [License](#license)
 
@@ -132,17 +133,17 @@ Using the previous example we could have two cases:
 <tr><th> Commodity A | Currency B </th><th> Commodity B | Currency A </th></tr>
 <tr><td>
 
-|  Amount     |    Price      |  Type  |
-|:-----------:|:-------------:|:------:|
-| `10 GENS`   |  `2 ADA`      | Sell   |
-| `8 GENS`    |  `2.5 ADA`    | Buy    |
+|  Amount   |   Price   | Type  |
+| :-------: | :-------: | :---: |
+| `10 GENS` |  `2 ADA`  | Sell  |
+| `8 GENS`  | `2.5 ADA` |  Buy  |
 
 </td><td>
 
-|  Amount     |    Price       |  Type  |
-|:-----------:|:--------------:|:------:|
-| `20 ADA`    |  `0.4 GENS`    | Sell   |
-| `20 ADA`    |  `0.5 GENS`    | Buy    |
+|  Amount  |   Price    | Type  |
+| :------: | :--------: | :---: |
+| `20 ADA` | `0.4 GENS` | Sell  |
+| `20 ADA` | `0.5 GENS` |  Buy  |
 
 </td></tr>
 </table>
@@ -570,6 +571,33 @@ Finishing the dummy implementation of `oneBuyToManySell` with the actual logic i
 Questions: Choosing between one strategy or the other will always enforce some matching strategy, so
 will it be possible to merge the two strategies into a single one? Or it will be better to run two
 different SOR instances?
+
+## Yield Accelerator Rewards
+
+SOR's fill orders and therefore participate in the GeniusYield Yield Accelerator Program and accumulate rewards.
+
+Traders wishing to check and claim their rewards can easily do so in the [GeniusYield UI](https://app.geniusyield.co/earn),
+but unfortunately, at the moment, the UI only works for users who connect their wallets to the UI and are identified by
+the wallet stake key hash.
+
+An SOR, on the other hand, normally just uses a simple payment signing key and an associated address without staking component.
+
+To allow SOR operators to check and claim rewards, we are providing two simple bash scripts,
+one for [checking](./scripts/check-bot-rewards.sh) and one for [claiming](./scripts/claim-bot-rewards.sh) rewards.
+Both scripts require the `cardano-cli` to be installed and available in the `PATH`, and in order to claim,
+you additionally need a connection to a running Cardano node.
+
+To check your rewards, run the following command:
+
+```shell
+./scripts/check-bot-rewards.sh <PATH_TO_YOUR_PAYMENT_SIGNING_KEY>
+```
+
+To claim your rewards, run the following command:
+
+```shell
+./scripts/claim-bot-rewards.sh <PATH_TO_YOUR_PAYMENT_SIGNING_KEY> <PATH_TO_YOUR_CARDANO_NODE_SOCKET>
+```
 
 ## Troubleshooting
 
