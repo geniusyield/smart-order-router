@@ -9,7 +9,7 @@ Stability   : develop
 module Main ( main ) where
 
 import Control.Exception ( throwIO )
-import System.Environment (getArgs)
+import System.Environment ( getArgs )
 import GeniusYield.OrderBot ( runOrderBot )
 import OrderBotConfig ( readBotConfig, buildOrderBot, getDexInfo )
 
@@ -17,10 +17,10 @@ parseArgs :: IO (String, FilePath, Maybe FilePath)
 parseArgs = do
     args <- getArgs
     case args of
-        [action, providerConfigFile,botConfigFile] -> return ( action
-                                                             , providerConfigFile
-                                                             , Just botConfigFile
-                                                             )
+        [action, providerConfigFile, botConfigFile] -> return ( action
+                                                              , providerConfigFile
+                                                              , Just botConfigFile
+                                                              )
         [action, providerConfigFile] -> return (action, providerConfigFile, Nothing)
         _ -> throwIO . userError $ unlines
              [ "Expected two or three command line arguments, in order:"
