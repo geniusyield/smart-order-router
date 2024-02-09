@@ -64,8 +64,8 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/geniusyield/atlas
-  tag: 44b235ac4f4337dd2b2488b4f79f33a987f2be72
-  --sha256: sha256-EL7o0yYJIC8KvH0kZ9J0n+h/+w4GI4hCz39QyDA7Udg=
+  tag: be490dcc5b99d0ff10e9d7cd801c4e0ae3a4865a
+  --sha256: sha256-HxwD8p7eg1yMo3hVDtGduU9zOQobFPONKj+064fdjVU=
 
 source-repository-package
   type: git
