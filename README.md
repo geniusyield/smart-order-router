@@ -587,7 +587,7 @@ To claim your rewards, run the following command:
 
 ## Monitoring
 There are several way you could keep an eye on the performance of your SOR instance.
-- You could look up the address of your SOR on any blockchainexplorer like https://cexplorer.io/ or https://cardanoscan.io/ and keep an eye on the transactions manually.
+- You could look up the address of your SOR on any blockchainexplorer like [cexplorer](https://cexplorer.io/) or [cardanoscan](https://cardanoscan.io/) and keep an eye on the transactions manually.
 - You could automate this by using the [Thoth Cardano Bot](https://github.com/DevStakePool/thoth-bot) for Telegram, that you can configure to send you notifications every time your SOR is able to succesfully submit a match and you are the lucky one to be the one who is getting the rewards.
 - Or just use the community [developed script](https://github.com/cloudstake/public/blob/main/genius-yield-errors.sh).
 
