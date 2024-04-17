@@ -23,9 +23,10 @@ import           Data.Maybe                       (fromJust)
 import           Data.Text                        (Text)
 import           Numeric.Natural                  (Natural)
 
-import           GeniusYield.DEX.Api.PartialOrder (PartialOrderInfo (poiOfferedAmount),
-                                                   fillMultiplePartialOrders)
-import           GeniusYield.DEX.Api.Types        (GYApiMonad)
+import           GeniusYield.Api.Dex.PartialOrder (PORefs,
+                                                   PartialOrderInfo (poiOfferedAmount),
+                                                   fillMultiplePartialOrders')
+import           GeniusYield.Api.Dex.Types        (GYDexApiMonad)
 import           GeniusYield.OrderBot.OrderBook   (OrderBook)
 import           GeniusYield.OrderBot.Types
 import           GeniusYield.TxBuilder            (GYTxSkeleton)
@@ -96,15 +97,17 @@ must be paid by the order.
 data FillType = CompleteFill | PartialFill Natural deriving stock (Eq, Show)
 
 executionSkeleton
-  :: GYApiMonad m
-  => MatchResult
+  :: GYDexApiMonad m a
+  => PORefs
+  -> MatchResult
   -> m (GYTxSkeleton 'PlutusV2)
-executionSkeleton mr = fillMultiplePartialOrders $ map f mr
+executionSkeleton pors mr = fillMultiplePartialOrders' pors (map f mr) Nothing mempty
   where
     f (OrderExecutionInfo ft o) =
-      (poiSource o
+      let oi = fromJust $ mPoi o in  -- It's always under `Just` constructor in our code, but we aren't able to get rid of `Maybe` type for now since that would require significant changes in the test-suite.
+      (oi
       , case ft of
-          CompleteFill -> poiOfferedAmount $ fromJust $ mPoi o
+          CompleteFill -> poiOfferedAmount oi
           PartialFill n ->
             if isBuyOrder o then
               floor $ fromIntegral n * getPrice (price o)
@@ -116,8 +119,3 @@ executionSkeleton mr = fillMultiplePartialOrders $ map f mr
 matchExecutionInfoUtxoRef :: MatchExecutionInfo -> GYTxOutRef
 matchExecutionInfoUtxoRef (OrderExecutionInfo CompleteFill OrderInfo {orderRef}) = orderRef
 matchExecutionInfoUtxoRef (OrderExecutionInfo (PartialFill _) OrderInfo {orderRef}) = orderRef
-
--- | If the order contains the PartialOrderInfo, return it. If not, return the ref
-poiSource :: forall t. OrderInfo t -> Either GYTxOutRef PartialOrderInfo
-poiSource OrderInfo {orderRef, mPoi = Nothing} = Left orderRef
-poiSource OrderInfo {mPoi = Just poi}          = Right poi

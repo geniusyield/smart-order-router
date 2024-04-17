@@ -8,10 +8,8 @@ Stability   : develop
 -}
 module GeniusYield.OrderBot.DataSource.Providers
     ( Connection
-    , DEX
     , connectDB
     , closeDB
-    , mkDEX
     , withEachAssetOrders
     ) where
 
@@ -20,15 +18,13 @@ import           Data.Map.Strict                  (Map)
 import qualified Data.Map.Strict                  as Map
 
 import           Control.Monad.Reader             (ReaderT (runReaderT))
-import           GeniusYield.DEX.Api.PartialOrder
-import           GeniusYield.DEX.Api.Types        (DEXInfo (..), mkPORefs)
+import           GeniusYield.Api.Dex.Constants    (DEXInfo (..))
+import           GeniusYield.Api.Dex.PartialOrder
 import           GeniusYield.OrderBot.Types
 import           GeniusYield.TxBuilder
 import           GeniusYield.Types
 
 data Connection = Connection !GYNetworkId {-# UNPACK #-} !GYProviders
-
-type DEX = DEXInfo
 
 type OrderData = (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #)
 
@@ -38,21 +34,9 @@ connectDB netId providers = pure $ Connection netId providers
 closeDB :: Connection -> IO ()
 closeDB = const $ return ()
 
-mkDEX :: GYMintingPolicy PlutusV2
-      -> GYValidator PlutusV2
-      -> Maybe GYTxOutRef
-      -> Maybe GYTxOutRef
-      -> (GYAddress, GYAssetClass)
-      -> DEX
-mkDEX nft partialOrder mVRef mNPRef (porAddr, porAC) =
-    DEXInfo { dexNftPolicy             = nft
-            , dexPartialOrderValidator = partialOrder
-            , dexPORefs                = mkPORefs porAddr porAC mVRef mNPRef
-            }
-
 withEachAssetOrders
     :: Connection
-    -> DEX
+    -> DEXInfo
     -> [OrderAssetPair]
     -> (a -> OrderData -> a)
     -> a
@@ -80,14 +64,14 @@ runQuery (Connection nid providers) = runGYTxQueryMonadNode nid providers
 
 allOrderInfos
     :: Connection
-    -> DEX
+    -> DEXInfo
     -> [OrderAssetPair]
     -> IO (Map OrderAssetPair [SomeOrderInfo])
 allOrderInfos c dex assetPairs = do
     cTime <- getCurrentGYTime
 
     partialOrderInfos <- runQuery c $
-                         runReaderT (partialOrders $ partialOrderFilter cTime) dex
+                         runReaderT (partialOrdersWithTransformerPredicate (dexPORefs dex) $ partialOrderFilter cTime) dex
 
     return $ foldl' f Map.empty partialOrderInfos
   where

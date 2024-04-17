@@ -35,10 +35,8 @@ import qualified Data.Map                              as M
 import qualified Data.Text                             as Txt
 
 import           GeniusYield.GYConfig                  (GYCoreConfig (cfgNetworkId),
-                                                        coreConfigIO,
                                                         withCfgProviders)
-import           GeniusYield.OrderBot.DataSource       (closeDB, connectDB,
-                                                        mkDEX)
+import           GeniusYield.OrderBot.DataSource       (closeDB, connectDB)
 import           GeniusYield.OrderBot.MatchingStrategy (IndependentStrategy,
                                                         MatchExecutionInfo (..),
                                                         MatchResult,
@@ -61,10 +59,7 @@ import           GeniusYield.TxBuilder                 (GYTxBuildResult (..),
 import           GeniusYield.TxBuilder.Node            (runGYTxMonadNodeParallelWithStrategy)
 import           GeniusYield.Types
 
-import           GeniusYield.DEX.Api.Types             (DEXInfo (..),
-                                                        PORefs (..),
-                                                        dexNftPolicy,
-                                                        dexPartialOrderValidator)
+import           GeniusYield.Api.Dex.Constants         (DEXInfo (..))
 import           GeniusYield.Transaction               (BuildTxException,
                                                         GYCoinSelectionStrategy (GYLegacy))
 
@@ -105,7 +100,7 @@ data OrderBot = OrderBot
 newtype ExecutionStrategy = MultiAssetTraverse IndependentStrategy
 
 runOrderBot
-    ::  FilePath
+    :: GYCoreConfig
     -- ^ Path to the config file for the GY framework.
     -> DEXInfo
     -- ^ Complete DEX information.
@@ -113,7 +108,7 @@ runOrderBot
     -- ^ OrderBot configuration.
     -> IO ()
 runOrderBot
-    confFile
+    cfg
     di
     OrderBot
     { botSkey
@@ -124,7 +119,6 @@ runOrderBot
     , botRescanDelay
     , botTakeMatches
     } = do
-    cfg <- coreConfigIO confFile
     withCfgProviders cfg "" $ \providers -> do
         let logInfo  = gyLogInfo providers "SOR"
             logDebug = gyLogDebug providers "SOR"
@@ -134,13 +128,6 @@ runOrderBot
             botChangeAddr = addressFromCredential netId (GYPaymentCredentialByKey botPkh) (stakeAddressToCredential . stakeAddressFromBech32 <$> botStakeAddress)
             botAddrs = [botChangeAddr]
 
-            por     = dexPORefs di
-            dex     = mkDEX (dexNftPolicy di)
-                            (dexPartialOrderValidator di)
-                            (porNftPolicyRef por)
-                            (porValidatorRef por)
-                            (porRefAddr por, porRefNft por)
-
         logInfo $ unlines
             [ ""
             , "Starting bot with given credentials"
@@ -148,8 +135,6 @@ runOrderBot
             , "  Wallet Addresses: "      ++ show (Txt.unpack . addressToText <$> botAddrs)
             , "  Change Address: "        ++ (Txt.unpack . addressToText $ botChangeAddr)
             , "  Collateral: "            ++ show botCollateral
-            , "  Reference Script ref: "  ++ show (porValidatorRef por)
-            , "  Reference Minting ref: " ++ show (porNftPolicyRef por)
             , "  Scan delay (µs): "       ++ show botRescanDelay
             , "  Token Pairs to scan:"
             , unlines (map (("\t - " ++) . show) botAssetPairFilter)
@@ -162,7 +147,7 @@ runOrderBot
 
             -- First we populate the multi asset orderbook, using the provided
             -- @populateOrderBook@.
-            book <- populateOrderBook conn dex botAssetPairFilter
+            book <- populateOrderBook conn di botAssetPairFilter
 
             let bookList = maOrderBookToList book
             logInfo $ unwords [ "MultiAsset Order Book Info:"
@@ -284,7 +269,7 @@ buildTransactions matchesToExecute di netId
     getBodies = NE.toList . runIdentity . sequence
 
     resultToSkeleton :: MatchResult -> GYTxMonadNode (GYTxSkeleton 'PlutusV2)
-    resultToSkeleton mResult = runReaderT (executionSkeleton mResult) di
+    resultToSkeleton mResult = runReaderT (executionSkeleton (dexPORefs di) mResult) di
 
     handlerBuildTx :: BuildTxException -> IO [(GYTxBody, MatchResult)]
     handlerBuildTx ex = logWarn (unwords ["BuildTxException:", show ex])

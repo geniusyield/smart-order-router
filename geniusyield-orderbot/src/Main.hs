@@ -8,10 +8,14 @@ Stability   : develop
 -}
 module Main ( main ) where
 
-import Control.Exception ( throwIO )
-import System.Environment ( getArgs )
-import GeniusYield.OrderBot ( runOrderBot )
-import OrderBotConfig ( readBotConfig, buildOrderBot, getDexInfo )
+import           Control.Exception             (throwIO)
+import           GeniusYield.Api.Dex.Constants (dexInfoDefaultMainnet,
+                                                dexInfoDefaultPreprod)
+import           GeniusYield.GYConfig
+import           GeniusYield.OrderBot          (runOrderBot)
+import           GeniusYield.Types             (GYNetworkId (..))
+import           OrderBotConfig                (buildOrderBot, readBotConfig)
+import           System.Environment            (getArgs)
 
 parseArgs :: IO (String, FilePath, Maybe FilePath)
 parseArgs = do
@@ -33,8 +37,13 @@ main :: IO ()
 main = do
     (action, pConfFile,obConfFile) <- parseArgs
     obc <- readBotConfig obConfFile
-    di <- getDexInfo obc
+    cfg <- coreConfigIO pConfFile
+    di <-
+        case cfgNetworkId cfg of
+            GYTestnetPreprod -> pure dexInfoDefaultPreprod
+            GYMainnet -> pure dexInfoDefaultMainnet
+            _ -> throwIO $ userError "Only Preprod and Mainnet are supported."
     ob <- buildOrderBot obc
     case action of
-        "run" -> runOrderBot pConfFile di ob
+        "run" -> runOrderBot cfg di ob
         _ -> throwIO . userError $ unwords ["Action: ", show action, " not supported."]

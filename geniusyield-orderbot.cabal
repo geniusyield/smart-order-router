@@ -120,6 +120,7 @@ library            orderbook-list
   build-depends:
     , geniusyield-orderbot-framework:common
     , geniusyield-orderbot-framework:datasource
+    , geniusyield-dex-api
   exposed-modules:
     GeniusYield.OrderBot.OrderBook.List
 
