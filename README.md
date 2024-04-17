@@ -325,14 +325,6 @@ file. The complete bot configuration looks like this:
 ```json
 {
    "signingKeyFP": "bot.skey",
-   "nftMintingPolicyFP": "compiled-scripts/minting-policy",
-   "orderValidatorFP": "compiled-scripts/partial-order",
-   "validatorRefs": {
-      "refAddr": "addr_test1wrgvy8fermjrruaf7fnndtmpuw4xx4cnvfqjp5zqu8kscfcvh32qk",
-      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.8309f9861928a55d37e84f6594b878941edce5e351f7904c2c63b559bde45c5c",
-      "scriptRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#2",
-      "nftPolicyRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#1"
-   },
    "strategy": "OneSellToManyBuy",
    "scanDelay": 40000000,
    "maxOrderMatches": 5,
@@ -350,17 +342,6 @@ file. The complete bot configuration looks like this:
   on a file.
 - `collateral`, an optional field to specify the collateral for the bot. If not
   present, Atlas will choose a suitable UTxO as collateral.
-- `nftMintingPolicyFP` and `orderValidatorFP`, the filepath where the minting policy
-  and validator are stored.
-- `"validatorsRefs"`, contains the information necessary for the validator. Contains 3
-  mandatory fields and 2 optional ones.
-  - `"refAddr"`, address where the reference NFT is placed.
-  - `"refNftAc"`, assetClass of the reference NFT is placed.
-  - `"refNftUtxoRef"`, UTxO reference where the reference NFT is placed.
-  - `"scriptRef"`, an optional parameter for the script reference. This UTxO has to
-    have the partial order validator as a script ref.
-  - `"nftPolicyRef"`, an optional parameter for the script reference of the partial
-    orders NFT. This UTxO has to have the partial order NFT minting policy as a script ref.
 - `strategy`, currently the SOR supports one possible strategy: OneSellToManyBuy.
 - `scanDelay`, the duration of time in µs we wait before re-initiating a complete iteration for the bot.
 - `maxOrderMatches`, is the maximum amount of orders to be matched into a single transaction.
@@ -421,37 +402,6 @@ cardano-cli query utxo --address $(cat bot.preprod.addr) --mainnet
 Assign the selected UTXO (hash + index) to `COLLATERAL_UTXO_REF`  when running the SOR via Docker.
 
 Alternatively, the UTXO information can also be obtained from a block explorer service such as https://cexplorer.io/
-
-#### Deployed Contract
-
-The SOR has the ability to use reference scripts on the filling transactions to
-help minimize the fees. To do that, we need to use the official contract information
-that is completely placed on the blockchain. That is the validator and the minting policy.
-
-##### Preprod
-```json
-{
-   "validatorRefs": {
-      "refAddr": "addr_test1wrgvy8fermjrruaf7fnndtmpuw4xx4cnvfqjp5zqu8kscfcvh32qk",
-      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.8309f9861928a55d37e84f6594b878941edce5e351f7904c2c63b559bde45c5c",
-      "scriptRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#2",
-      "nftPolicyRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#1"
-   }
-}
-```
-
-##### Mainnet
-
-```json
-{
-   "validatorRefs":{
-      "refAddr": "addr1w9zr09hgj7z6vz3d7wnxw0u4x30arsp5k8avlcm84utptls8uqd0z",
-      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.4aff78908ef2dce98bfe435fb3fd2529747b1c4564dff5adebedf4e46d0fc63d",
-      "scriptRef": "062f97b0e64130bc18b4a227299a62d6d59a4ea852a4c90db3de2204a2cd19ea#2",
-      "nftPolicyRef": "062f97b0e64130bc18b4a227299a62d6d59a4ea852a4c90db3de2204a2cd19ea#1"
-   }
-}
-```
 
 #### Running
 
