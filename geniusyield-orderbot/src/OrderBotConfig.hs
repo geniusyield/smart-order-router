@@ -31,11 +31,6 @@ import           System.Envy ( FromEnv (fromEnv), Var, Parser, envMaybe, env
                              )
 import           System.Random.MWC (fromSeed, initialize, createSystemSeed)
 
-import           Ply (readTypedScript, TypedScript, ScriptRole (..))
-import           PlutusLedgerApi.V1         ( Address )
-import           PlutusLedgerApi.V1.Scripts ( ScriptHash )
-import           PlutusLedgerApi.V1.Value   ( AssetClass )
-
 import           GeniusYield.OrderBot
 import           GeniusYield.OrderBot.Types ( OrderAssetPair(..)
                                             , equivalentAssetPair
@@ -47,7 +42,6 @@ import           Cardano.Api ( AsType (AsSigningKey, AsPaymentKey)
                              )
 
 import           Strategies ( BotStrategy(..), allStrategies, mkIndependentStrategy )
-import           GeniusYield.DEX.Api.Types
 
 -- | Order bot vanilla config.
 data OrderBotConfig =
@@ -71,10 +65,6 @@ data OrderBotConfig =
     {- ^ The duration (microseconds) of time we wait before re-initiating a
          complete iteration for the bot.
     -}
-    , botCFPNftPolicy           :: FilePath
-    -- ^ FilePath of the partial order minting policy.
-    , botCFPOrderValidator      :: FilePath
-    -- ^ FilePath of the partial order validator.
     , botCMaxOrderMatches       :: Int
     -- ^ The maximum amount of orders to be matched into a single transaction.
     , botCMaxTxsPerIteration    :: Int
@@ -84,14 +74,6 @@ data OrderBotConfig =
     , botCRandomizeMatchesFound :: Bool
     {- ^ A boolean that dictates whether the bot chooses the tx to submit at
          random (to decrease collisions), or not (to maximize profit)
-    -}
-    , botCPORConfig             :: PORConfig
-    {- ^ UTxO reference of the UTxO storing the NFT that is placed in each order.
-         Address of the previous UTxO, together with a "must have" NFT to officially
-         identification.
-
-         UTxO reference of the partial order minting policy.
-         UTxO reference of the partial order validator.
     -}
     }
     deriving stock (Show, Eq, Generic)
@@ -105,22 +87,15 @@ instance FromEnv OrderBotConfig where
         <*> envWithMsg ("Invalid Strategy. Must be one of: " ++ show allStrategies) "BOTC_EXECUTION_STRAT"
         <*> (parseArray <$> env "BOTC_ASSET_FILTER")
         <*> envIntWithMsg "BOTC_RESCAN_DELAY"
-        <*> env "BOTC_FP_NFT_POLICY"
-        <*> env "BOTC_FP_ORDER_VALIDATOR"
         <*> envIntWithMsg "BOTC_MAX_ORDERS_MATCHES"
         <*> envIntWithMsg "BOTC_MAX_TXS_PER_ITERATION"
         <*> envWithMsg "Must be either 'True' or 'False'" "BOTC_RANDOMIZE_MATCHES_FOUND"
-        <*> (parsePORDict <$> env "BOTC_POREFS")
       where
         parseCBORSKey :: String -> GYPaymentSigningKey
         parseCBORSKey s =
             either (error . ("Error parsing 'BOTC_SKEY': " ++)) paymentSigningKeyFromApi $
             eitherDecodeStrict (fromString s) >>=
             first show . deserialiseFromTextEnvelope (AsSigningKey AsPaymentKey)
-
-        parsePORDict :: String -> PORConfig
-        parsePORDict = either (error . ("Error parsing 'BOTC_POREFS': " ++)) id
-                        . eitherDecodeStrict . fromString
 
         parseArray :: String -> [OrderAssetPair]
         parseArray s = either (error . ("Error parsing 'BOTC_ASSET_FILTER': " ++) ) id $
@@ -141,12 +116,9 @@ instance FromJSON OrderBotConfig where
         <*> obj .: "strategy"
         <*> (parseScanTokenPairs =<< obj .: "scanTokens")
         <*> obj .:  "scanDelay"
-        <*> obj .:  "nftMintingPolicyFP"
-        <*> obj .:  "orderValidatorFP"
         <*> obj .:  "maxOrderMatches"
         <*> obj .:  "maxTxsPerIteration"
         <*> obj .:  "randomizeMatchesFound"
-        <*> obj .:  "validatorRefs"
 
     parseJSON _ = fail "Expecting object value"
 
@@ -160,24 +132,6 @@ parseObjectTokenPair :: Value -> Aeson.Parser OrderAssetPair
 parseObjectTokenPair = withObject "OrderAssetPair" $ \v -> OAssetPair
     <$> v .: "currencyAsset"
     <*> v .: "commodityAsset"
-
-data PORConfig =
-    PORConfig
-    { botCRefAddr      :: GYAddress
-    , botCRefNft       :: GYAssetClass
-    , botCScriptRef    :: Maybe GYTxOutRef
-    , botCNftPolicyRef :: Maybe GYTxOutRef
-    }
-    deriving stock (Show, Eq, Generic)
-
-instance FromJSON PORConfig where
-    parseJSON (Object obj) =
-        PORConfig
-        <$> (addressFromBech32 <$> obj .: "refAddr")
-        <*> obj .: "refNftAC"
-        <*> obj .:? "scriptRef"
-        <*> obj .:? "nftPolicyRef"
-    parseJSON _ = fail "Expecting object value"
 
 -- | Given a vanilla order bot configuration, builds a complete order bot setup.
 buildOrderBot :: OrderBotConfig -> IO OrderBot
@@ -235,36 +189,3 @@ shuffleList :: [a] -> IO [a]
 shuffleList xs = createSystemSeed
                >>= initialize . fromSeed
                >>= runReaderT (sample (shuffle xs))
-
--- | Read the compiled scripts from the paths included in the OrderBotConfig
-getDexInfo :: OrderBotConfig -> IO DEXInfo
-getDexInfo OrderBotConfig{ botCFPNftPolicy
-                         , botCFPOrderValidator
-                         , botCPORConfig
-                         } = do
-    dexPolicyRaw    <- readNftPolicy
-    dexValidatorRaw <- readOrderValidator
-
-    let partialOrderValidator = mkDEXValidator dexValidatorRaw
-                                               (addressToPlutus $ botCRefAddr botCPORConfig)
-                                               (botCRefNft botCPORConfig)
-        nftPolicy             = mkDEXMintingPolicy dexPolicyRaw partialOrderValidator (addressToPlutus $ botCRefAddr botCPORConfig) (botCRefNft botCPORConfig)
-        porefs = PORefs { porRefAddr      = botCRefAddr botCPORConfig
-                        , porRefNft       = botCRefNft botCPORConfig
-                        , porValidatorRef = botCScriptRef botCPORConfig
-                        , porNftPolicyRef = botCNftPolicyRef botCPORConfig
-                        }
-    return DEXInfo
-        { dexPartialOrderValidator = partialOrderValidator
-        , dexNftPolicy = nftPolicy
-        , dexPORefs = porefs
-        }
-
-  where
-    readNftPolicy
-        :: IO (TypedScript 'MintingPolicyRole '[ScriptHash, Address, AssetClass])
-    readNftPolicy = readTypedScript botCFPNftPolicy
-
-    readOrderValidator
-        :: IO (TypedScript 'ValidatorRole '[Address, AssetClass])
-    readOrderValidator = readTypedScript botCFPOrderValidator

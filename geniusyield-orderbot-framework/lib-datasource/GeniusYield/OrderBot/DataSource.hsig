@@ -11,23 +11,18 @@ a connection to a _data source_ and fetch information on DEX orders.
 -}
 signature GeniusYield.OrderBot.DataSource
     ( Connection
-    , DEX
     , connectDB
     , closeDB
-    , mkDEX
     , withEachAssetOrders
     ) where
 
-import Prelude                    ( IO, Maybe )
+import Prelude                    ( IO )
 
-import GeniusYield.Types          ( GYNetworkId, GYProviders, GYAssetClass
-                                  , GYAddress, GYMintingPolicy, GYValidator
-                                  , PlutusVersion(PlutusV2)
-                                  , GYTxOutRef
-                                  )
+import GeniusYield.Types          ( GYNetworkId, GYProviders )
 import GeniusYield.OrderBot.Types ( OrderAssetPair, OrderInfo
                                   , OrderType (BuyOrder, SellOrder)
                                   )
+import GeniusYield.Api.Dex.Constants (DEXInfo (..))
 
 -- | Means to connect to a data source for orders/liquidity positions.
 data Connection
@@ -39,26 +34,6 @@ connectDB :: GYNetworkId -> GYProviders -> IO Connection
 
 -- | Close the DB connection.
 closeDB :: Connection -> IO ()
-
-{- | DEX Compiled Scripts to use in the dex operations, optionally the utxo
-     reference to use as reference scripts, along with additional information
-     about other ecosystem components.
--}
-data DEX
-
-{- | Given the DEX NFT minting policy and the Partial Orders validator, create
-     the DEX Compiled Scripts. Optionally add utxo reference to use as script ref
-     for the validator and nft minting policy.
--}
-mkDEX
-    :: GYMintingPolicy PlutusV2
-    -> GYValidator PlutusV2
-    -> Maybe GYTxOutRef
-    -- ^ Script Ref for the Partial Orders Validator
-    -> Maybe GYTxOutRef
-    -- ^ Script Ref for the NFT minting policy
-    -> (GYAddress, GYAssetClass)
-    -> DEX
 
 {- | Fetch all unique DEX order asset pairings, and for each such asset pair, fetch all buy and sell orders.
 
@@ -74,7 +49,7 @@ IO action.
 -}
 withEachAssetOrders
     :: Connection
-    -> DEX
+    -> DEXInfo
     -> [OrderAssetPair]
     -> (a -> (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #) -> a)
     -> a

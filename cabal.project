@@ -17,7 +17,6 @@ index-state:
   , cardano-haskell-packages 2023-06-05T06:39:32Z
 
 packages: .
-packages: geniusyield-dex-api
 packages: geniusyield-orderbot-framework
 
 -- TODO: Default value should be @direct@ in upcoming 3.10 version of cabal, omit this line then.
@@ -33,8 +32,8 @@ package strict-containers
 source-repository-package
   type: git
   location: https://github.com/maestro-org/haskell-sdk
-  tag: fb8e32869f7a8f5fa2585b542e4eb4207eaf735b
-  --sha256: sha256-LOiC9zPXjPFshKfb/SKkFBkAFnOuQDwCqeDB7ZyB3b0=
+  tag: 609515b3f8861efaa17adf4e599aa1b845775a6d
+  --sha256: sha256-8se+xlIB1BDEuKGwjaldmW5G4LpCujD1ABgBaY0cY6Y=
 
 -- Unfortunately, cardano-node 8.1.2 is constrained with plutus-ledger-api 1.5.0.0 and we would like at least 1.6.0.0.
 -- This is done in accordance with changes in https://github.com/input-output-hk/cardano-ledger/pull/3430/files.
@@ -64,8 +63,17 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/geniusyield/atlas
-  tag: be490dcc5b99d0ff10e9d7cd801c4e0ae3a4865a
-  --sha256: sha256-HxwD8p7eg1yMo3hVDtGduU9zOQobFPONKj+064fdjVU=
+  tag: 105ff78b32935ae5c18c53ccf4fb8462b8c1ca03
+  --sha256: sha256-Ee/UIoJ8OYBxgdnSv61hN8DH7CrIOPn4DjqOBxFL3Js=
+
+source-repository-package
+  type: git
+  location: https://github.com/geniusyield/dex-contracts-api
+  tag: ef2904d2d06dd068e5b4e2ac2513bcf61d2ca74c
+  --sha256: sha256-vXA5mVG7POEbezxMUQlxfyQbApdX5kG7L9BRlar+th0=
+  subdir:
+    geniusyield-dex-api
+    geniusyield-onchain/geniusyield-common
 
 source-repository-package
   type: git

@@ -54,7 +54,9 @@ import           GeniusYield.OrderBot.Types      ( OrderAssetPair(..)
                                                  , OrderType (BuyOrder, SellOrder)
                                                  ,  OrderInfo, Price, Volume
                                                  )
-import           GeniusYield.OrderBot.DataSource ( Connection, DEX )
+import           GeniusYield.OrderBot.DataSource ( Connection )
+
+import           GeniusYield.Api.Dex.Constants    (DEXInfo)
 
 -------------------------------------------------------------------------------
 -- Core Order book types
@@ -113,7 +115,7 @@ This implementation may use those as necessary.
 -}
 populateOrderBook
     :: Connection
-    -> DEX
+    -> DEXInfo
     -> [OrderAssetPair]
     -> IO MultiAssetOrderBook
 

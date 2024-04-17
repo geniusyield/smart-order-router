@@ -117,7 +117,7 @@ library            datasource
   import:          common-ghc-opts
   visibility:      public
   hs-source-dirs:  lib-datasource
-  build-depends:   base, atlas-cardano, geniusyield-orderbot-framework:common
+  build-depends:   base, atlas-cardano, geniusyield-orderbot-framework:common, geniusyield-dex-api
   signatures:
     GeniusYield.OrderBot.DataSource
 
@@ -132,6 +132,7 @@ library            orderbook
     , base
     , geniusyield-orderbot-framework:common
     , geniusyield-orderbot-framework:datasource
+    , geniusyield-dex-api
   signatures:
     GeniusYield.OrderBot.OrderBook
 

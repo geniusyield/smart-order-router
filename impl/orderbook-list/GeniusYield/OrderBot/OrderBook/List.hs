@@ -39,15 +39,17 @@ module GeniusYield.OrderBot.OrderBook.List (
   withEachAsset,
 ) where
 
-import Data.Aeson (ToJSON, toJSON, object)
-import Data.Foldable (foldl')
-import Data.List (sortOn)
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as M
-import Data.Ord (Down (Down))
+import           Data.Aeson                      (ToJSON, object, toJSON)
+import           Data.Foldable                   (foldl')
+import           Data.List                       (sortOn)
+import           Data.Map.Strict                 (Map)
+import qualified Data.Map.Strict                 as M
+import           Data.Ord                        (Down (Down))
 
-import GeniusYield.OrderBot.DataSource (Connection, DEX, withEachAssetOrders)
-import GeniusYield.OrderBot.Types
+import           GeniusYield.Api.Dex.Constants   (DEXInfo)
+import           GeniusYield.OrderBot.DataSource (Connection,
+                                                  withEachAssetOrders)
+import           GeniusYield.OrderBot.Types
 
 type MultiAssetOrderBook = Map OrderAssetPair OrderBook
 
@@ -62,7 +64,7 @@ newtype Orders t = Orders {unOrders :: [OrderInfo t]}
 
 data OrderBook = OrderBook
   { sellOrders :: Orders 'SellOrder
-  , buyOrders :: Orders 'BuyOrder
+  , buyOrders  :: Orders 'BuyOrder
   }
   deriving stock (Show, Eq)
 
@@ -71,7 +73,7 @@ instance ToJSON OrderBook where
 
 populateOrderBook
     :: Connection
-    -> DEX
+    -> DEXInfo
     -> [OrderAssetPair]
     -> IO MultiAssetOrderBook
 populateOrderBook conn dex f = do

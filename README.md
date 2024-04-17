@@ -472,8 +472,6 @@ For running the tests we can just simply execute `make orderbot-tests`.
 
 The SOR is organized into 5 main folders:
 
-- [`compiled-scripts`](./compiled-scripts), contains the compiled validator and minting policy of the DEX.
-- [`geniusyield-dex-api`](./geniusyield-dex-api), defines the DEX interface to query and build transactions.
 - [`geniusyield-orderbot-framework`](./geniusyield-orderbot-framework), implement the main abstract tools for the SOR.
 - [`geniusyield-orderbot`](./geniusyield-orderbot), the executable is implemented here, together with the strategies.
 - [`impl`](./impl), specific implementations of the orderbook and data-provider.

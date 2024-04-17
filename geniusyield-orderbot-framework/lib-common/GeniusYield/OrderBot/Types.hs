@@ -31,7 +31,7 @@ import           Numeric.Natural                  (Natural)
 import           GeniusYield.Types.TxOutRef       (GYTxOutRef)
 import           GeniusYield.Types.Value          (GYAssetClass (..))
 
-import           GeniusYield.DEX.Api.PartialOrder (PartialOrderInfo (..))
+import           GeniusYield.Api.Dex.PartialOrder (PartialOrderInfo (..))
 import           GeniusYield.Types                (rationalToGHC)
 
 -------------------------------------------------------------------------------
