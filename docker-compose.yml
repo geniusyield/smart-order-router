@@ -35,7 +35,7 @@ services:
         timeout: 10s
         retries: 100
   node:
-    image: inputoutput/cardano-node
+    image: "ghcr.io/intersectmbo/cardano-node:8.7.3"
     container_name: node
     environment:
      - NETWORK=${NETWORK-mainnet}
