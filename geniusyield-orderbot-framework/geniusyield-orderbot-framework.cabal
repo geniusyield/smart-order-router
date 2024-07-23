@@ -1,13 +1,14 @@
 cabal-version: 3.4
 name:          geniusyield-orderbot-framework
 synopsis:      Smart Order Router framework
-version:       0.1.0.0
+version:       0.2.0
 build-type:    Simple
 license:       Apache-2.0
 copyright:     (c) 2023 GYELD GMBH
 author:        Lars Bruenjes
 maintainer:    support@geniusyield.co
 category:      Blockchain, Cardano, Framework
+extra-doc-files: CHANGELOG.md
 
 -- Common sections
 
