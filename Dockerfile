@@ -1,4 +1,4 @@
-FROM ghcr.io/geniusyield/haskell-base-image:9.2.8
+FROM ghcr.io/geniusyield/haskell-base-image:9.6.5
 
 # ==================================[ BUILD ]========================================
 WORKDIR /SOR
