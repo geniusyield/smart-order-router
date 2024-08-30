@@ -22,7 +22,6 @@ import           Control.Monad.Reader                  (runReaderT)
 import           Data.Aeson                            (ToJSON, encode)
 import           Data.Foldable                         (foldl', toList)
 import           Data.Functor                          ((<&>))
-import           Data.Functor.Identity                 (runIdentity)
 import           Data.List                             (find)
 import           Data.Maybe                            (mapMaybe)
 
@@ -52,16 +51,17 @@ import           GeniusYield.OrderBot.Types            (OrderAssetPair (..),
                                                         assetInfo)
 import           GeniusYield.Providers.Common          (SubmitTxException)
 import           GeniusYield.TxBuilder                 (GYTxBuildResult (..),
-                                                        GYTxMonadNode,
+                                                        GYTxBuilderMonadIO,
                                                         GYTxSkeleton,
-                                                        runGYTxQueryMonadNode,
+                                                        buildTxBodyParallelWithStrategy,
+                                                        runGYTxBuilderMonadIO,
+                                                        runGYTxQueryMonadIO,
                                                         utxosAtTxOutRefs)
-import           GeniusYield.TxBuilder.Node            (runGYTxMonadNodeParallelWithStrategy)
 import           GeniusYield.Types
 
 import           GeniusYield.Api.Dex.Constants         (DEXInfo (..))
-import           GeniusYield.Transaction               (BuildTxException,
-                                                        GYCoinSelectionStrategy (GYLegacy))
+import           GeniusYield.Transaction               (GYCoinSelectionStrategy (GYLegacy))
+import           GeniusYield.TxBuilder.Errors          (GYTxMonadException)
 
 -- | The order bot is product type between bot info and "execution strategies".
 data OrderBot = OrderBot
@@ -266,13 +266,13 @@ buildTransactions matchesToExecute di netId
     findBody bs mr = let ref = matchExecutionInfoUtxoRef $ head mr
                      in find (elem ref . txBodyTxIns) bs <&> (,mr)
 
-    getBodies = NE.toList . runIdentity . sequence
+    getBodies = NE.toList
 
-    resultToSkeleton :: MatchResult -> GYTxMonadNode (GYTxSkeleton 'PlutusV2)
+    resultToSkeleton :: MatchResult -> GYTxBuilderMonadIO (GYTxSkeleton 'PlutusV2)
     resultToSkeleton mResult = runReaderT (executionSkeleton (dexPORefs di) mResult) di
 
-    handlerBuildTx :: BuildTxException -> IO [(GYTxBody, MatchResult)]
-    handlerBuildTx ex = logWarn (unwords ["BuildTxException:", show ex])
+    handlerBuildTx :: GYTxMonadException -> IO [(GYTxBody, MatchResult)]
+    handlerBuildTx ex = logWarn (unwords ["GYTxMonadException:", show ex])
                         >> return []
 
 notLosingTokensCheck
@@ -288,7 +288,7 @@ notLosingTokensCheck netId providers botAddrs oapFilter (txBody, matchesToExecut
         matchesRefs = map matchExecutionInfoUtxoRef matchesToExecute
         botInputs   = filter (`notElem` matchesRefs) $ txBodyTxIns txBody
 
-    inputs <- runGYTxQueryMonadNode netId providers $ utxosAtTxOutRefs botInputs
+    inputs <- runGYTxQueryMonadIO netId providers $ utxosAtTxOutRefs botInputs
 
     let (inputLovelace, filteredACInput)   =
             utxosLovelaceAndFilteredValueAtAddr inputs
@@ -366,3 +366,6 @@ matchingsPerOrderAssetPair oaps = foldl' succOAP (M.fromList $ map (, 0) oaps)
       succOAP :: M.Map OrderAssetPair Int -> MatchResult -> M.Map OrderAssetPair Int
       succOAP m (OrderExecutionInfo _ oi : _) = M.insertWith (+) (assetInfo oi) 1 m
       succOAP m _ = m
+
+runGYTxMonadNodeParallelWithStrategy :: GYCoinSelectionStrategy -> GYNetworkId -> GYProviders -> [GYAddress] -> GYAddress -> Maybe (GYTxOutRef, Bool) -> GYTxBuilderMonadIO [GYTxSkeleton v] -> IO GYTxBuildResult
+runGYTxMonadNodeParallelWithStrategy strat nid providers addrs change collateral act = runGYTxBuilderMonadIO nid providers addrs change collateral $ act >>= buildTxBodyParallelWithStrategy strat

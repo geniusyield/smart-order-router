@@ -59,8 +59,8 @@ withEachAssetOrders c dex assetFilter f acc = do
       acc
       infoMap
 
-runQuery :: Connection -> GYTxQueryMonadNode a -> IO a
-runQuery (Connection nid providers) = runGYTxQueryMonadNode nid providers
+runQuery :: Connection -> GYTxQueryMonadIO a -> IO a
+runQuery (Connection nid providers) = runGYTxQueryMonadIO nid providers
 
 allOrderInfos
     :: Connection
