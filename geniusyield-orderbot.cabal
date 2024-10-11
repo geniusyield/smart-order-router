@@ -111,6 +111,7 @@ library            datasource-providers
     , geniusyield-orderbot-framework:common
     , geniusyield-dex-api
   exposed-modules: GeniusYield.OrderBot.DataSource.Providers
+  visibility: public
 
 library            orderbook-list
   import:          common-lang
@@ -123,6 +124,7 @@ library            orderbook-list
     , geniusyield-dex-api
   exposed-modules:
     GeniusYield.OrderBot.OrderBook.List
+  visibility: public
 
 library           geniusyield-strategies
   import:         common-lang
