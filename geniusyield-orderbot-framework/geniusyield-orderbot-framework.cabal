@@ -136,6 +136,24 @@ library            orderbook
     , geniusyield-dex-api
   signatures:
     GeniusYield.OrderBot.OrderBook
+  exposed-modules:
+    GeniusYield.OrderBot.OrderBook.Extra
+
+library            strategies
+  import:          common-lang
+  import:          common-ghc-opts
+  visibility:      public
+  hs-source-dirs:  lib-strategies
+  build-depends:
+    , aeson
+    , atlas-cardano
+    , base
+    , envy
+    , geniusyield-orderbot-framework:common
+    , geniusyield-orderbot-framework:orderbook
+    , geniusyield-dex-api
+  signatures:
+    GeniusYield.OrderBot.Strategies
 
 -- Indefinite library exposing the OrderBot orchestration types and functions.
 library
@@ -147,6 +165,7 @@ library
     , geniusyield-orderbot-framework:common
     , geniusyield-orderbot-framework:datasource
     , geniusyield-orderbot-framework:orderbook
+    , geniusyield-orderbot-framework:strategies
     , geniusyield-dex-api
   exposed-modules:
     GeniusYield.OrderBot

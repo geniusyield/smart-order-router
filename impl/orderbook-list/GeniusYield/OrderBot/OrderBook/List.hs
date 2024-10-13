@@ -19,6 +19,9 @@ module GeniusYield.OrderBot.OrderBook.List (
   -- * Order book construction
   populateOrderBook,
   buildOrderBookList,
+  emptyOrders,
+  unconsOrders,
+  insertOrder,
 
   -- * Order book queries
   lowestSell,
@@ -26,6 +29,7 @@ module GeniusYield.OrderBot.OrderBook.List (
   withoutTip,
   foldlOrders,
   foldrOrders,
+  foldlMOrders,
   ordersLTPrice,
   ordersLTEPrice,
   ordersGTPrice,
@@ -34,14 +38,14 @@ module GeniusYield.OrderBot.OrderBook.List (
   volumeLTEPrice,
   volumeGTPrice,
   volumeGTEPrice,
-
+  nullOrders,
   -- * MultiAssetOrderBook reading utilities
   withEachAsset,
 ) where
 
 import           Data.Aeson                      (ToJSON, object, toJSON)
-import           Data.Foldable                   (foldl')
-import           Data.List                       (sortOn)
+import           Data.Foldable                   (foldl', foldlM)
+import           Data.List                       (insertBy, sortOn)
 import           Data.Map.Strict                 (Map)
 import qualified Data.Map.Strict                 as M
 import           Data.Ord                        (Down (Down))
@@ -96,6 +100,19 @@ buildOrderBookList acc (# oap, buyOrders, sellOrders #) =
   (oap, OrderBook (Orders $ sortOn price sellOrders)
                   (Orders $ sortOn (Down . price) buyOrders)) : acc
 
+emptyOrders :: Orders t
+emptyOrders = Orders []
+
+unconsOrders :: Orders t -> Maybe (OrderInfo t, Orders t)
+unconsOrders (Orders [])       = Nothing
+unconsOrders (Orders (x : xs)) = Just (x, Orders xs)
+
+insertOrder :: OrderInfo t -> Orders t -> Orders t
+insertOrder oi (Orders os) = Orders $
+  case orderType oi of
+    SBuyOrder  -> insertBy (\oadd opresent -> compare (price opresent) (price oadd)) oi os
+    SSellOrder -> insertBy (\oadd opresent -> compare (price oadd) (price opresent)) oi os
+
 lowestSell :: Orders 'SellOrder -> OrderInfo 'SellOrder
 lowestSell = head . unOrders
 
@@ -108,8 +125,14 @@ withoutTip = Orders . drop 1 . unOrders
 foldlOrders :: forall a t. (a -> OrderInfo t -> a) -> a -> Orders t -> a
 foldlOrders f e = foldl' f e . unOrders
 
+foldlMOrders :: forall a t m. Monad m => (a -> OrderInfo t -> m a) -> a -> Orders t -> m a
+foldlMOrders f e = foldlM f e . unOrders
+
 foldrOrders :: forall a t. (OrderInfo t -> a -> a) -> a -> Orders t -> a
 foldrOrders f e = foldr f e . unOrders
+
+nullOrders :: Orders t -> Bool
+nullOrders = null . unOrders
 
 ordersLTPrice :: Price -> Orders t -> Orders t
 ordersLTPrice maxPrice = Orders . filter (\oi -> price oi < maxPrice) . unOrders
