@@ -140,37 +140,6 @@ library            strategies-impl
     GeniusYield.OrderBot.Strategies.Impl
   visibility: public
 
-library           geniusyield-strategies
-  import:         common-lang
-  import:         common-deps
-  import:         common-ghc-opts
-  hs-source-dirs: geniusyield-orderbot/src
-  build-depends:
-    , geniusyield-orderbot-framework
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot:datasource-providers
-    , geniusyield-orderbot:orderbook-list
-    , geniusyield-orderbot:strategies-impl
-    , geniusyield-dex-api
-    , envy
-    , cardano-api
-  mixins:
-    , geniusyield-orderbot:orderbook-list requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers )
-    , geniusyield-orderbot-framework requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        , GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl
-        )
-    , geniusyield-orderbot:strategies-impl requires
-        ( GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        , GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        )
-  exposed-modules:
-    Strategies
-  ghc-options:
-    -O2
-
 -- The primary orderbot executable - this must be instantiated with the signature
 -- implementations.
 
@@ -180,9 +149,6 @@ executable         geniusyield-orderbot-exe
   import:          common-ghc-opts
   hs-source-dirs:  geniusyield-orderbot/src
   main-is:         Main.hs
-  other-modules:
-    OrderBotConfig
-    Strategies
   build-depends:
     , cardano-api
     , envy
@@ -191,7 +157,6 @@ executable         geniusyield-orderbot-exe
     , geniusyield-orderbot:datasource-providers
     , geniusyield-orderbot:orderbook-list
     , geniusyield-orderbot:strategies-impl
-    , geniusyield-orderbot:geniusyield-strategies
     , geniusyield-dex-api
     , plutus-ledger-api
     , ply-core
@@ -229,7 +194,6 @@ test-suite strategies-tests
     , geniusyield-orderbot:datasource-providers
     , geniusyield-orderbot:orderbook-list
     , geniusyield-orderbot:strategies-impl
-    , geniusyield-orderbot:geniusyield-strategies
     , geniusyield-dex-api
     , QuickCheck
     , tasty

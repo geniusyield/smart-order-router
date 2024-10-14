@@ -162,13 +162,18 @@ library
   import:          common-ghc-opts
   hs-source-dirs:  src
   build-depends:
+    , cardano-api
+    , envy
     , geniusyield-orderbot-framework:common
     , geniusyield-orderbot-framework:datasource
     , geniusyield-orderbot-framework:orderbook
     , geniusyield-orderbot-framework:strategies
     , geniusyield-dex-api
+    , vector
   exposed-modules:
     GeniusYield.OrderBot
     GeniusYield.OrderBot.MatchingStrategy
+    GeniusYield.OrderBot.OrderBotConfig
+    GeniusYield.OrderBot.Run
   ghc-options:
     -O2

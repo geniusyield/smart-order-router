@@ -1,12 +1,12 @@
 {-|
-Module      : OrderBotConfig
+Module      : GeniusYield.OrderBot.OrderBotConfig
 Copyright   : (c) 2023 GYELD GMBH
 License     : Apache 2.0
 Maintainer  : support@geniusyield.co
 Stability   : develop
 
 -}
-module OrderBotConfig where
+module GeniusYield.OrderBot.OrderBotConfig where
 
 import           Control.Exception ( throwIO )
 import           Control.Monad ( (<=<) )
@@ -41,7 +41,7 @@ import           Cardano.Api ( AsType (AsSigningKey, AsPaymentKey)
                              , deserialiseFromTextEnvelope
                              )
 
-import           Strategies ( BotStrategy(..), allStrategies, mkIndependentStrategy )
+import           GeniusYield.OrderBot.Strategies ( BotStrategy, allStrategies, mkIndependentStrategy )
 
 -- | Order bot vanilla config.
 data OrderBotConfig =

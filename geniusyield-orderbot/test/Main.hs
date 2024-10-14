@@ -2,8 +2,7 @@ module Main where
 
 import Test.Tasty (defaultMain, testGroup, TestTree)
 import Test.Tasty.QuickCheck (testProperty)
-
-import Strategies
+import GeniusYield.OrderBot.Strategies.Impl
 import Tests.Prop.Strategies
 import Tests.Prop.Orderbook
 

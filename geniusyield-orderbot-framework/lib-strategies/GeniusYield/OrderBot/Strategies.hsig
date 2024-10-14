@@ -27,6 +27,8 @@ data BotStrategy
 instance ToJSON BotStrategy
 instance FromJSON BotStrategy
 instance Var BotStrategy
+instance Show BotStrategy
+instance Eq BotStrategy
 
 {- | A list containing all implemented strategies. This list is used for the
      tests and for the error message during env variable parsing.
