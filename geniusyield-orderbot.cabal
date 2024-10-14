@@ -1,6 +1,6 @@
 cabal-version: 3.4
 name:          geniusyield-orderbot
-version:       0.1.0.0
+version:       0.2.0
 synopsis:      Smart Order Router
 description: Open-source Smart Order Router framework to connect liquidity from
              the GeniusYield DEX to empowers users to deploy their own arbitrage
@@ -16,6 +16,7 @@ category:           Blockchain, Cardano, Framework
 homepage:           https://github.com/geniusyield/smart-order-router#readme
 bug-reports:        https://github.com/geniusyield/smart-order-router/issues
 extra-source-files: README.md
+extra-doc-files: CHANGELOG.md
 
 -- Common sections
 
