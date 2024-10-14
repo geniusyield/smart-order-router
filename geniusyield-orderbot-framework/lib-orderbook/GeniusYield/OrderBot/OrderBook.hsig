@@ -36,7 +36,6 @@ signature GeniusYield.OrderBot.OrderBook (
     lowestSellMaybe,
     highestBuy,
     highestBuyMaybe,
-    lookupBest,
     withoutTip,
     foldlOrders,
     foldrOrders,
@@ -63,7 +62,6 @@ import           Data.Kind                       (Type)
 import           GeniusYield.OrderBot.Types      ( OrderAssetPair(..)
                                                  , OrderType (BuyOrder, SellOrder)
                                                  , OrderInfo, Price, Volume
-                                                 , SOrderTypeI
                                                  )
 import           GeniusYield.OrderBot.DataSource ( Connection )
 
@@ -169,9 +167,6 @@ highestBuy :: Orders 'BuyOrder -> OrderInfo 'BuyOrder
 
 -- | The highest buy order in the 'Orders' data structure. Returns 'Nothing' if the 'Orders' data structure is empty.
 highestBuyMaybe :: Orders 'BuyOrder -> Maybe (OrderInfo 'BuyOrder)
-
--- | In case we have buy orders, return the best buy order (highest price). And in case we have sell orders, return the best sell order (lowest price).
-lookupBest :: forall (t :: OrderType). SOrderTypeI t => Orders t -> Maybe (OrderInfo t)
 
 -- Slicing
 

@@ -29,7 +29,6 @@ module GeniusYield.OrderBot.OrderBook.List (
   lowestSellMaybe,
   highestBuy,
   highestBuyMaybe,
-  lookupBest,
   withoutTip,
   foldlOrders,
   foldrOrders,
@@ -133,11 +132,6 @@ highestBuy = head . unOrders
 
 highestBuyMaybe :: Orders 'BuyOrder -> Maybe (OrderInfo 'BuyOrder)
 highestBuyMaybe = listToMaybe . unOrders
-
-lookupBest :: forall (t :: OrderType). SOrderTypeI t => Orders t -> Maybe (OrderInfo t)
-lookupBest os = case (sOrderType @t) of
-  SBuyOrder  -> highestBuyMaybe os
-  SSellOrder -> lowestSellMaybe os
 
 withoutTip :: Orders t -> Orders t
 withoutTip = Orders . drop 1 . unOrders
