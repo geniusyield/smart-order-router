@@ -12,6 +12,7 @@ module GeniusYield.OrderBot.Types
     , OrderAssetPair (OAssetPair, currencyAsset, commodityAsset)
     , OrderType (..)
     , SOrderType (..)
+    , SOrderTypeI (..)
     , Volume (..)
     , Price (..)
     , mkOrderInfo
@@ -20,15 +21,20 @@ module GeniusYield.OrderBot.Types
     , mkOrderAssetPair
     , equivalentAssetPair
     , mkEquivalentAssetPair
+    , FillType (..)
+    , MatchExecutionInfo (..)
+    , completeFill
+    , partialFill
     ) where
 
 import           Data.Aeson                       (ToJSON, (.=))
 import qualified Data.Aeson                       as Aeson
 import           Data.Kind                        (Type)
 import           Data.Ratio                       (denominator, numerator, (%))
+import           Data.Text                        (Text)
 import           Numeric.Natural                  (Natural)
 
-import           GeniusYield.Types.TxOutRef       (GYTxOutRef)
+import           GeniusYield.Types.TxOutRef       (GYTxOutRef, showTxOutRef)
 import           GeniusYield.Types.Value          (GYAssetClass (..))
 
 import           GeniusYield.Api.Dex.PartialOrder (PartialOrderInfo (..))
@@ -135,12 +141,21 @@ isBuyOrder _                                  = False
 
 data OrderType = BuyOrder | SellOrder deriving stock (Eq, Show)
 
-data SOrderType t where
-    SBuyOrder  :: SOrderType BuyOrder
-    SSellOrder :: SOrderType SellOrder
+data SOrderType (t :: OrderType) where
+    SBuyOrder  :: SOrderType 'BuyOrder
+    SSellOrder :: SOrderType 'SellOrder
 
 deriving stock instance Eq (SOrderType t)
 deriving stock instance Show (SOrderType t)
+
+class SOrderTypeI (t :: OrderType) where
+    sOrderType :: SOrderType t
+
+instance SOrderTypeI 'BuyOrder where
+    sOrderType = SBuyOrder
+
+instance SOrderTypeI 'SellOrder where
+    sOrderType = SSellOrder
 
 -------------------------------------------------------------------------------
 -- Order components
@@ -237,3 +252,50 @@ mkOrderType
 mkOrderType asked oap
     | commodityAsset oap == asked = BuyOrder
     | otherwise = SellOrder
+
+{- | "Fill" refers to the _volume_ of the order filled. Therefore, its unit is always the 'commodityAsset'.
+
+Of course, 'CompleteFill' just means the whole order is filled, whether it's buy or sell.
+
+'PartialFill' means slightly different things for the two order types. But the 'Natural' field within
+always designates the 'commodityAsset'.
+
+For sell orders, `PartialFill n` indicates that n amount of commodity tokens will be sold from the order,
+and the respective payment will be made in the currency asset.
+
+For buy orders, `PartialFill n` indicates that n amount of
+commodity tokens should be bought, and the corresponding price (orderPrice * n), _floored_ if necessary,
+must be paid by the order.
+
+**NOTE**: The 'n' in 'PartialFill n' must not be the max volume of the order. Use 'CompleteFill' in those scenarios.
+-}
+data FillType = CompleteFill | PartialFill Natural deriving stock (Eq, Show)
+
+data MatchExecutionInfo
+    = forall t. OrderExecutionInfo !FillType {-# UNPACK #-} !(OrderInfo t)
+
+instance ToJSON MatchExecutionInfo where
+  toJSON (OrderExecutionInfo fillT OrderInfo { orderRef, orderType, assetInfo
+                                             , volume
+                                             , price = Price {getPrice = x}
+                                             }) =
+      Aeson.object
+      [ "utxoRef"   .= showTxOutRef orderRef
+      , "volumeMin" .= volumeMin volume
+      , "volumeMax" .= volumeMax volume
+      , "price"     .= x
+      , "commodity" .= commodityAsset assetInfo
+      , "currency"  .= currencyAsset assetInfo
+      , "type"      .= prettySOrderType orderType
+      , "fillType"  .= show fillT
+      ]
+    where
+      prettySOrderType :: SOrderType t -> Text
+      prettySOrderType SBuyOrder  = "Buy"
+      prettySOrderType SSellOrder = "Sell"
+
+completeFill :: OrderInfo t -> MatchExecutionInfo
+completeFill = OrderExecutionInfo CompleteFill
+
+partialFill :: OrderInfo t -> Natural -> MatchExecutionInfo
+partialFill o n = OrderExecutionInfo (PartialFill n) o

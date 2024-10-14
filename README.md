@@ -423,8 +423,8 @@ For running the tests we can just simply execute `make orderbot-tests`.
 The SOR is organized into 5 main folders:
 
 - [`geniusyield-orderbot-framework`](./geniusyield-orderbot-framework), implement the main abstract tools for the SOR.
-- [`geniusyield-orderbot`](./geniusyield-orderbot), the executable is implemented here, together with the strategies.
-- [`impl`](./impl), specific implementations of the orderbook and data-provider.
+- [`impl`](./impl), specific implementations of the orderbook, data-provider and strategies.
+- [`geniusyield-orderbot`](./geniusyield-orderbot), simply runs the executable.
 
 ### Backpack
 
@@ -439,8 +439,8 @@ To get started with Backpack, please see the following example: [A really small 
 
 ## Strategies
 
-On the [`Strategies`](./geniusyield-orderbot/src/Strategies.hs) module, you can find all the strategies
-implemented by the SOR. Currently, there is only one called [`OneSellToManyBuy`](./geniusyield-orderbot/src/Strategies.hs#L36C20-L36C36),
+On the [`GeniusYield.OrderBot.Strategies.Impl`](./impl/strategies-impl/GeniusYield/OrderBot/Strategies/Impl.hs) module, you can find all the strategies
+implemented by the SOR. Currently, there is only one called `OneSellToManyBuy`,
 which basically takes the best sell order (the one with the lowest price) and searches for many buy
 orders (starting from the one with the highest price), ideally buying the total amount of offered
 tokens, or until it reaches the maxOrderMatches.
@@ -464,7 +464,7 @@ data BotStrategy = OneSellToManyBuy
 ```
 
 We must adjust some straightforward instances with the new constructor: `FromJSON` and `Var`.
-As is the case with [`mkIndependentStrategy`](./geniusyield-orderbot/src/Strategies.hs#L56-L59),
+As is the case with `mkIndependentStrategy`,
 adding a new particular case for `OneBuyToManySell`
 
 ```haskell
@@ -484,7 +484,7 @@ oneBuyToManySell :: Natural -> OrderBook -> [MatchResult]
 oneBuyToManySell _ _ = []
 ```
 
-Even more! We can add the new constructor `OneBuyToManySell` to the `allStrategies` [list](https://github.com/geniusyield/smart-order-router/blob/75aeeb733ea2c747595e2b231460601d80ed2866/geniusyield-orderbot/src/Strategies.hs#L58)
+Even more! We can add the new constructor `OneBuyToManySell` to the `allStrategies` list
 and this should be enough to start testing with our custom strategy by running the tests.
 
 ```haskell
@@ -497,8 +497,8 @@ Finishing the dummy implementation of `oneBuyToManySell` with the actual logic i
 <details>
   <summary>Hint</summary>
 
-> Checking [`multiFill`](./geniusyield-orderbot/src/Strategies.hs#L95-L132),
-  can help to realize that it's enough to use [`oneSellToManyBuy`](./geniusyield-orderbot/src/Strategies.hs#L82-L92)
+> Checking `multiFill`,
+  can help to realize that it's enough to use [`oneSellToManyBuy`]
   as inspiration and "flip" something.
 </details>
 

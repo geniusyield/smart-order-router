@@ -27,12 +27,20 @@ signature GeniusYield.OrderBot.OrderBook (
     -- * Order book construction
     populateOrderBook,
     buildOrderBookList,
+    emptyOrders,
+    unconsOrders,
+    insertOrder,
+    deleteOrder,
     -- * Order book queries
     lowestSell,
+    lowestSellMaybe,
     highestBuy,
+    highestBuyMaybe,
     withoutTip,
     foldlOrders,
     foldrOrders,
+    foldlMOrders,
+    filterOrders,
     ordersLTPrice,
     ordersLTEPrice,
     ordersGTPrice,
@@ -41,18 +49,19 @@ signature GeniusYield.OrderBot.OrderBook (
     volumeLTEPrice,
     volumeGTPrice,
     volumeGTEPrice,
+    nullOrders,
     -- * MultiAssetOrderBook reading utilities
     withEachAsset
 ) where
 
-import           Prelude                         (IO)
+import           Prelude                         (Bool, IO, Maybe, Monad)
 
 import           Data.Aeson                      (ToJSON)
 import           Data.Kind                       (Type)
 
 import           GeniusYield.OrderBot.Types      ( OrderAssetPair(..)
                                                  , OrderType (BuyOrder, SellOrder)
-                                                 ,  OrderInfo, Price, Volume
+                                                 , OrderInfo, Price, Volume
                                                  )
 import           GeniusYield.OrderBot.DataSource ( Connection )
 
@@ -129,15 +138,35 @@ buildOrderBookList
 
 -- Components
 
+-- | An empty 'Orders' data structure.
+emptyOrders :: Orders t
+
+-- | If the 'Orders' data structure is empty, return 'Nothing', else return the tip and the rest.
+unconsOrders :: Orders t -> Maybe (OrderInfo t, Orders t)
+
+-- | Insert an order into the 'Orders' data structure.
+insertOrder :: OrderInfo t -> Orders t -> Orders t
+
+-- | Delete an order from the 'Orders' data structure.
+deleteOrder :: OrderInfo t -> Orders t -> Orders t
+
 buyOrders :: OrderBook -> Orders 'BuyOrder
 
 sellOrders :: OrderBook -> Orders 'SellOrder
 
 -- Minima & Maxima
 
+-- | The lowest sell order in the 'Orders' data structure. Fails if the 'Orders' data structure is empty.
 lowestSell :: Orders 'SellOrder -> OrderInfo 'SellOrder
 
+-- | The lowest sell order in the 'Orders' data structure. Returns 'Nothing' if the 'Orders' data structure is empty.
+lowestSellMaybe :: Orders 'SellOrder -> Maybe (OrderInfo 'SellOrder)
+
+-- | The highest buy order in the 'Orders' data structure. Fails if the 'Orders' data structure is empty.
 highestBuy :: Orders 'BuyOrder -> OrderInfo 'BuyOrder
+
+-- | The highest buy order in the 'Orders' data structure. Returns 'Nothing' if the 'Orders' data structure is empty.
+highestBuyMaybe :: Orders 'BuyOrder -> Maybe (OrderInfo 'BuyOrder)
 
 -- Slicing
 
@@ -145,13 +174,14 @@ withoutTip :: Orders t -> Orders t
 
 -- Folds
 
+-- TODO: Document that it should be strict in accumulator.
 {- | Left associative fold over the 'Orders' data structure.
 
 The order in which each 'OrderInfo' is passed onto the function, depends on the type of
 'Orders'.
 
-For sell orders, it should act like a 'foldr' on a list with _ascending_ orders based on price.
-For buy orders, it should act like a 'foldr' on a list with _descending_ orders based on price.
+For sell orders, it should act like a 'foldl' on a list with _ascending_ orders based on price.
+For buy orders, it should act like a 'foldl' on a list with _descending_ orders based on price.
 -}
 foldlOrders :: forall a t. (a -> OrderInfo t -> a) -> a -> Orders t -> a
 
@@ -160,10 +190,16 @@ foldlOrders :: forall a t. (a -> OrderInfo t -> a) -> a -> Orders t -> a
 The order in which each 'OrderInfo' is passed onto the function, depends on the type of
 'Orders'.
 
-For sell orders, it should act like a 'foldl' on a list with _ascending_ orders based on price.
-For buy orders, it should act like a 'foldl' on a list with _descending_ orders based on price.
+For sell orders, it should act like a 'foldr' on a list with _ascending_ orders based on price.
+For buy orders, it should act like a 'foldr' on a list with _descending_ orders based on price.
 -}
 foldrOrders :: forall a t. (OrderInfo t -> a -> a) -> a -> Orders t -> a
+
+-- | @foldlM@ variant for 'Orders', you should almost always be using @foldlMOrders'@ instead.
+foldlMOrders :: forall a t m. Monad m => (a -> OrderInfo t -> m a) -> a -> Orders t -> m a
+
+-- | Filter orders based on a predicate.
+filterOrders :: (OrderInfo t -> Bool) -> Orders t -> Orders t
 
 -- Price queries
 
@@ -184,6 +220,8 @@ volumeLTEPrice :: Price -> Orders t -> Volume
 volumeGTPrice :: Price -> Orders t -> Volume
 
 volumeGTEPrice :: Price -> Orders t -> Volume
+
+nullOrders :: Orders t -> Bool
 
 -------------------------------------------------------------------------------
 -- MultiAssetOrderBook reading utilities
