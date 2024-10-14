@@ -30,13 +30,18 @@ signature GeniusYield.OrderBot.OrderBook (
     emptyOrders,
     unconsOrders,
     insertOrder,
+    deleteOrder,
     -- * Order book queries
     lowestSell,
+    lowestSellMaybe,
     highestBuy,
+    highestBuyMaybe,
+    lookupBest,
     withoutTip,
     foldlOrders,
     foldrOrders,
     foldlMOrders,
+    filterOrders,
     ordersLTPrice,
     ordersLTEPrice,
     ordersGTPrice,
@@ -57,7 +62,8 @@ import           Data.Kind                       (Type)
 
 import           GeniusYield.OrderBot.Types      ( OrderAssetPair(..)
                                                  , OrderType (BuyOrder, SellOrder)
-                                                 ,  OrderInfo, Price, Volume
+                                                 , OrderInfo, Price, Volume
+                                                 , SOrderTypeI
                                                  )
 import           GeniusYield.OrderBot.DataSource ( Connection )
 
@@ -143,15 +149,29 @@ unconsOrders :: Orders t -> Maybe (OrderInfo t, Orders t)
 -- | Insert an order into the 'Orders' data structure.
 insertOrder :: OrderInfo t -> Orders t -> Orders t
 
+-- | Delete an order from the 'Orders' data structure.
+deleteOrder :: OrderInfo t -> Orders t -> Orders t
+
 buyOrders :: OrderBook -> Orders 'BuyOrder
 
 sellOrders :: OrderBook -> Orders 'SellOrder
 
 -- Minima & Maxima
 
+-- | The lowest sell order in the 'Orders' data structure. Fails if the 'Orders' data structure is empty.
 lowestSell :: Orders 'SellOrder -> OrderInfo 'SellOrder
 
+-- | The lowest sell order in the 'Orders' data structure. Returns 'Nothing' if the 'Orders' data structure is empty.
+lowestSellMaybe :: Orders 'SellOrder -> Maybe (OrderInfo 'SellOrder)
+
+-- | The highest buy order in the 'Orders' data structure. Fails if the 'Orders' data structure is empty.
 highestBuy :: Orders 'BuyOrder -> OrderInfo 'BuyOrder
+
+-- | The highest buy order in the 'Orders' data structure. Returns 'Nothing' if the 'Orders' data structure is empty.
+highestBuyMaybe :: Orders 'BuyOrder -> Maybe (OrderInfo 'BuyOrder)
+
+-- | In case we have buy orders, return the best buy order (highest price). And in case we have sell orders, return the best sell order (lowest price).
+lookupBest :: forall (t :: OrderType). SOrderTypeI t => Orders t -> Maybe (OrderInfo t)
 
 -- Slicing
 
@@ -182,6 +202,9 @@ foldrOrders :: forall a t. (OrderInfo t -> a -> a) -> a -> Orders t -> a
 
 -- | @foldlM@ variant for 'Orders', you should almost always be using @foldlMOrders'@ instead.
 foldlMOrders :: forall a t m. Monad m => (a -> OrderInfo t -> m a) -> a -> Orders t -> m a
+
+-- | Filter orders based on a predicate.
+filterOrders :: (OrderInfo t -> Bool) -> Orders t -> Orders t
 
 -- Price queries
 

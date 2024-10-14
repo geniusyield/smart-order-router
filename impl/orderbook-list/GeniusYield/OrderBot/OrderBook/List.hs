@@ -22,14 +22,19 @@ module GeniusYield.OrderBot.OrderBook.List (
   emptyOrders,
   unconsOrders,
   insertOrder,
+  deleteOrder,
 
   -- * Order book queries
   lowestSell,
+  lowestSellMaybe,
   highestBuy,
+  highestBuyMaybe,
+  lookupBest,
   withoutTip,
   foldlOrders,
   foldrOrders,
   foldlMOrders,
+  filterOrders,
   ordersLTPrice,
   ordersLTEPrice,
   ordersGTPrice,
@@ -45,11 +50,12 @@ module GeniusYield.OrderBot.OrderBook.List (
 
 import           Data.Aeson                      (ToJSON, object, toJSON)
 import           Data.Foldable                   (foldl', foldlM)
-import           Data.List                       (insertBy, sortOn)
+import           Data.List                       (delete, insertBy, sortOn)
 import           Data.Map.Strict                 (Map)
 import qualified Data.Map.Strict                 as M
 import           Data.Ord                        (Down (Down))
 
+import           Data.Maybe                      (listToMaybe)
 import           GeniusYield.Api.Dex.Constants   (DEXInfo)
 import           GeniusYield.OrderBot.DataSource (Connection,
                                                   withEachAssetOrders)
@@ -113,11 +119,25 @@ insertOrder oi (Orders os) = Orders $
     SBuyOrder  -> insertBy (\oadd opresent -> compare (price opresent) (price oadd)) oi os
     SSellOrder -> insertBy (\oadd opresent -> compare (price oadd) (price opresent)) oi os
 
+deleteOrder :: OrderInfo t -> Orders t -> Orders t
+deleteOrder oi (Orders os) = Orders $ delete oi os
+
 lowestSell :: Orders 'SellOrder -> OrderInfo 'SellOrder
 lowestSell = head . unOrders
 
+lowestSellMaybe :: Orders 'SellOrder -> Maybe (OrderInfo 'SellOrder)
+lowestSellMaybe = listToMaybe . unOrders
+
 highestBuy :: Orders 'BuyOrder -> OrderInfo 'BuyOrder
 highestBuy = head . unOrders
+
+highestBuyMaybe :: Orders 'BuyOrder -> Maybe (OrderInfo 'BuyOrder)
+highestBuyMaybe = listToMaybe . unOrders
+
+lookupBest :: forall (t :: OrderType). SOrderTypeI t => Orders t -> Maybe (OrderInfo t)
+lookupBest os = case (sOrderType @t) of
+  SBuyOrder  -> highestBuyMaybe os
+  SSellOrder -> lowestSellMaybe os
 
 withoutTip :: Orders t -> Orders t
 withoutTip = Orders . drop 1 . unOrders
@@ -130,6 +150,9 @@ foldlMOrders f e = foldlM f e . unOrders
 
 foldrOrders :: forall a t. (OrderInfo t -> a -> a) -> a -> Orders t -> a
 foldrOrders f e = foldr f e . unOrders
+
+filterOrders :: (OrderInfo t -> Bool) -> Orders t -> Orders t
+filterOrders f = Orders . filter f . unOrders
 
 nullOrders :: Orders t -> Bool
 nullOrders = null . unOrders

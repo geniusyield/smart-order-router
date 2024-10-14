@@ -12,6 +12,7 @@ module GeniusYield.OrderBot.Types
     , OrderAssetPair (OAssetPair, currencyAsset, commodityAsset)
     , OrderType (..)
     , SOrderType (..)
+    , SOrderTypeI (..)
     , Volume (..)
     , Price (..)
     , mkOrderInfo
@@ -140,12 +141,21 @@ isBuyOrder _                                  = False
 
 data OrderType = BuyOrder | SellOrder deriving stock (Eq, Show)
 
-data SOrderType t where
-    SBuyOrder  :: SOrderType BuyOrder
-    SSellOrder :: SOrderType SellOrder
+data SOrderType (t :: OrderType) where
+    SBuyOrder  :: SOrderType 'BuyOrder
+    SSellOrder :: SOrderType 'SellOrder
 
 deriving stock instance Eq (SOrderType t)
 deriving stock instance Show (SOrderType t)
+
+class SOrderTypeI (t :: OrderType) where
+    sOrderType :: SOrderType t
+
+instance SOrderTypeI 'BuyOrder where
+    sOrderType = SBuyOrder
+
+instance SOrderTypeI 'SellOrder where
+    sOrderType = SSellOrder
 
 -------------------------------------------------------------------------------
 -- Order components
