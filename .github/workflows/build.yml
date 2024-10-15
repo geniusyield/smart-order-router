@@ -13,6 +13,7 @@ jobs:
       packages: write
       contents: read
     steps:
+      - uses: haskell-actions/run-fourmolu@v10
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry

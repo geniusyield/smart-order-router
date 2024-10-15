@@ -1,19 +1,18 @@
 module Tests.Prop.Strategies where
 
-import Control.Monad.Identity (Identity(..))
+import Control.Monad.Identity (Identity (..))
 import Test.QuickCheck
 import qualified Test.QuickCheck.Monadic as M
 
-import Data.Ratio
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import Data.Ratio
 
-import GeniusYield.OrderBot.Types
+import Data.Aeson (encode)
 import GeniusYield.OrderBot.MatchingStrategy
 import GeniusYield.OrderBot.OrderBook.List
+import GeniusYield.OrderBot.Types
 import GeniusYield.Types
-import Data.Aeson (encode)
 import Tests.Prop.Utils
-
 
 {- | Function that creates the boilerplate for the properties.
 
@@ -25,25 +24,25 @@ import Tests.Prop.Utils
         * Sets up the counterexample and label
         * Runs the property over the result of running the strategy
 -}
-mkStrategyTest
-    :: IndependentStrategy
-    -> ([MatchExecutionInfo] -> Bool)
-    -> Property
+mkStrategyTest ::
+  IndependentStrategy ->
+  ([MatchExecutionInfo] -> Bool) ->
+  Property
 mkStrategyTest strat prop = forAllShrink genOrderInfos shrinkTuple $
-    \(oap, buyOrders, sellOrders) -> M.monadic (\(Identity p) -> p) $ do
-        let book = buildOrderBookList [] (# oap, buyOrders, sellOrders #)
-        M.pre $ length book == 1
-        let meis = uncurry strat $ head book
-        M.monitor (counterexample (unlines ["MEIS:", LBS.unpack $ encode meis])) >>
-            M.monitor (label (getLabel meis)) >>
-                M.assert (all prop meis)
-  where
-    getLabel :: [MatchResult] -> String
-    getLabel meis
-        | null meis = "No matches found"
-        | length meis == 1 = "1 match found"
-        | length meis <= 10 = "2-10 matches found"
-        | otherwise = "11+ matches found"
+  \(oap, buyOrders, sellOrders) -> M.monadic (\(Identity p) -> p) $ do
+    let book = buildOrderBookList [] (# oap, buyOrders, sellOrders #)
+    M.pre $ length book == 1
+    let meis = uncurry strat $ head book
+    M.monitor (counterexample (unlines ["MEIS:", LBS.unpack $ encode meis]))
+      >> M.monitor (label (getLabel meis))
+      >> M.assert (all prop meis)
+ where
+  getLabel :: [MatchResult] -> String
+  getLabel meis
+    | null meis = "No matches found"
+    | length meis == 1 = "1 match found"
+    | length meis <= 10 = "2-10 matches found"
+    | otherwise = "11+ matches found"
 
 {- | Property that checks if the strategy can find a match if one exists.
 
@@ -61,21 +60,21 @@ mkStrategyTest strat prop = forAllShrink genOrderInfos shrinkTuple $
         * Sets up the counterexample and label
         * Runs the property over the result of running the strategy the second time
 -}
-propCanFindOnlyMatching
-    :: IndependentStrategy
-    -> Gen (OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder)
-    -> Property
+propCanFindOnlyMatching ::
+  IndependentStrategy ->
+  Gen (OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder) ->
+  Property
 propCanFindOnlyMatching strat gen = forAllShrink gen shrinkTuple' $
-    \(oap, buyOrders, sellOrders, nBuyOrder, nSellOrder) -> M.monadic (\(Identity p) -> p) $ do
-        let book = buildOrderBookList [] (# oap, buyOrders, sellOrders #)
-        M.pre $ length book == 1
-        let meis = uncurry strat $ head book
-        M.pre $ all null meis
-        let book' = buildOrderBookList [] (# oap, nBuyOrder : buyOrders, nSellOrder : sellOrders #)
-            meis' = uncurry strat $ head book'
-        M.monitor (counterexample (unlines ["","MEIS:", LBS.unpack $ encode meis', "BOOK:", show book'])) >>
-            M.monitor (label (if null meis then "No matches" else "Matches found")) >>
-                M.assert (any (\mr -> length mr >= 2) meis')
+  \(oap, buyOrders, sellOrders, nBuyOrder, nSellOrder) -> M.monadic (\(Identity p) -> p) $ do
+    let book = buildOrderBookList [] (# oap, buyOrders, sellOrders #)
+    M.pre $ length book == 1
+    let meis = uncurry strat $ head book
+    M.pre $ all null meis
+    let book' = buildOrderBookList [] (# oap, nBuyOrder : buyOrders, nSellOrder : sellOrders #)
+        meis' = uncurry strat $ head book'
+    M.monitor (counterexample (unlines ["", "MEIS:", LBS.unpack $ encode meis', "BOOK:", show book']))
+      >> M.monitor (label (if null meis then "No matches" else "Matches found"))
+      >> M.assert (any (\mr -> length mr >= 2) meis')
 
 {- | Generates a fixes OrderAssetPair, a list of buy and sell orders that
     don't generate any matches because they don't line up on price.
@@ -83,43 +82,47 @@ propCanFindOnlyMatching strat gen = forAllShrink gen shrinkTuple' $
 -}
 genOrderInfosWrongPrices :: Gen (OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder)
 genOrderInfosWrongPrices = do
-    buyOrders <- listOf1 $ genBuyOrder' oap
-    sellOrders <- listOf1 $ genSellOrder' oap
-    newBuyOrder <- genBuyOrder oap
-    newSellOrder <- genSellOrder oap `suchThat` sellOrderIsProfitable newBuyOrder
-    return (oap, buyOrders, sellOrders, newBuyOrder, newSellOrder)
-  where
-    goldPolicyId = "ff80aaaf03a273b8f5c558168dc0e2377eea810badbae6eceefc14ef"
-    oap = mkOrderAssetPair GYLovelace (GYToken goldPolicyId "GOLD")
+  buyOrders <- listOf1 $ genBuyOrder' oap
+  sellOrders <- listOf1 $ genSellOrder' oap
+  newBuyOrder <- genBuyOrder oap
+  newSellOrder <- genSellOrder oap `suchThat` sellOrderIsProfitable newBuyOrder
+  return (oap, buyOrders, sellOrders, newBuyOrder, newSellOrder)
+ where
+  goldPolicyId = "ff80aaaf03a273b8f5c558168dc0e2377eea810badbae6eceefc14ef"
+  oap = mkOrderAssetPair GYLovelace (GYToken goldPolicyId "GOLD")
 
-    sellOrderIsProfitable :: OrderInfo 'BuyOrder -> OrderInfo 'SellOrder -> Bool
-    sellOrderIsProfitable bOrder sOrder =  price sOrder <= price bOrder
-                                        && volumeMin (volume sOrder) <= volumeMax (volume bOrder)
-                                        && volumeMin (volume bOrder) <= volumeMax (volume sOrder)
+  sellOrderIsProfitable :: OrderInfo 'BuyOrder -> OrderInfo 'SellOrder -> Bool
+  sellOrderIsProfitable bOrder sOrder =
+    price sOrder <= price bOrder
+      && volumeMin (volume sOrder) <= volumeMax (volume bOrder)
+      && volumeMin (volume bOrder) <= volumeMax (volume sOrder)
 
-    genBuyOrder' :: OrderAssetPair -> Gen (OrderInfo 'BuyOrder)
-    genBuyOrder' oap = do
-        price <- genPrice `suchThat` ((< (50%1)) . getPrice)
-        volume <- genVolume (ceiling $ getPrice price)
-        utxoRef <- genGYTxOutRef
-        return $ OrderInfo utxoRef SBuyOrder oap volume price Nothing
+  genBuyOrder' :: OrderAssetPair -> Gen (OrderInfo 'BuyOrder)
+  genBuyOrder' oap = do
+    price <- genPrice `suchThat` ((< (50 % 1)) . getPrice)
+    volume <- genVolume (ceiling $ getPrice price)
+    utxoRef <- genGYTxOutRef
+    return $ OrderInfo utxoRef SBuyOrder oap volume price Nothing
 
-    genSellOrder' :: OrderAssetPair -> Gen (OrderInfo 'SellOrder)
-    genSellOrder' oap = OrderInfo <$> genGYTxOutRef
-                                <*> pure SSellOrder
-                                <*> pure oap
-                                <*> genVolume 1
-                                <*> genPrice `suchThat` ((> (50%1)) . getPrice)
-                                <*> pure Nothing
+  genSellOrder' :: OrderAssetPair -> Gen (OrderInfo 'SellOrder)
+  genSellOrder' oap =
+    OrderInfo
+      <$> genGYTxOutRef
+      <*> pure SSellOrder
+      <*> pure oap
+      <*> genVolume 1
+      <*> genPrice `suchThat` ((> (50 % 1)) . getPrice)
+      <*> pure Nothing
 
 {- | Property that checks if the sum of the offered tokens in the buy orders is
     less than or equal to the sum of offered tokens in the sell orders.
 -}
 propOffered :: [MatchExecutionInfo] -> Bool
 propOffered [] = True
-propOffered xs = let buys = filter isBuyOrderMEI xs
-                     sells = filter isSellOrderMEI xs
-                 in sumOfOffered buys <= sumOfOffered sells
+propOffered xs =
+  let buys = filter isBuyOrderMEI xs
+      sells = filter isSellOrderMEI xs
+   in sumOfOffered buys <= sumOfOffered sells
 
 {- | Property that checks if the sum of the price tokens in the buy orders is
     greater than or equal to the sum of price tokens in the sell orders.
@@ -129,9 +132,10 @@ propOffered xs = let buys = filter isBuyOrderMEI xs
 -}
 propPrice :: [MatchExecutionInfo] -> Bool
 propPrice [] = True
-propPrice xs = let buys = filter isBuyOrderMEI xs
-                   sells = filter isSellOrderMEI xs
-               in sumOfPrice buys >= sumOfPrice sells
+propPrice xs =
+  let buys = filter isBuyOrderMEI xs
+      sells = filter isSellOrderMEI xs
+   in sumOfPrice buys >= sumOfPrice sells
 
 {- | Property that checks if the matches generated by the strategy can be done
    Complete fill can always be performed and partial fills need to be
@@ -139,16 +143,17 @@ propPrice xs = let buys = filter isBuyOrderMEI xs
 -}
 propCanExecuteFill :: [MatchExecutionInfo] -> Bool
 propCanExecuteFill = all canFill
-  where
-    canFill :: MatchExecutionInfo -> Bool
-    canFill (OrderExecutionInfo CompleteFill _) = True
-    canFill (OrderExecutionInfo (PartialFill n) OrderInfo {volume}) =
-        n >= volumeMin volume
-        &&
-        n < volumeMax volume
+ where
+  canFill :: MatchExecutionInfo -> Bool
+  canFill (OrderExecutionInfo CompleteFill _) = True
+  canFill (OrderExecutionInfo (PartialFill n) OrderInfo {volume}) =
+    n >= volumeMin volume
+      && n < volumeMax volume
 
 --------------------------------------------------
+
 -- | UTILS
+
 --------------------------------------------------
 
 -- | Checks if a MatchExecutionInfo is a sell order
@@ -164,20 +169,20 @@ isBuyOrderMEI _ = False
 -- | Given a list of MatchExecutionInfo, sums the offered tokens filled
 sumOfOffered :: [MatchExecutionInfo] -> Natural
 sumOfOffered = foldl (\acc -> (+) acc . eiOffered) 0
-  where
-    eiOffered :: MatchExecutionInfo -> Natural
-    eiOffered (OrderExecutionInfo CompleteFill OrderInfo {volume}) = volumeMax volume
-    eiOffered (OrderExecutionInfo (PartialFill n) _) = n
+ where
+  eiOffered :: MatchExecutionInfo -> Natural
+  eiOffered (OrderExecutionInfo CompleteFill OrderInfo {volume}) = volumeMax volume
+  eiOffered (OrderExecutionInfo (PartialFill n) _) = n
 
 -- | Given a list of MatchExecutionInfo, sums the price tokens neccesary for the fills
 sumOfPrice :: [MatchExecutionInfo] -> Natural
 sumOfPrice = foldl (\acc -> (+) acc . eiOfferedByPrice) 0
-  where
-    eiOfferedByPrice :: MatchExecutionInfo -> Natural
-    eiOfferedByPrice (OrderExecutionInfo CompleteFill OrderInfo {volume,price}) =
-        ceiling $ (toInteger (volumeMax volume) % 1) * getPrice price
-    eiOfferedByPrice (OrderExecutionInfo (PartialFill n) OrderInfo {price}) =
-        ceiling $ (toInteger n % 1) * getPrice price
+ where
+  eiOfferedByPrice :: MatchExecutionInfo -> Natural
+  eiOfferedByPrice (OrderExecutionInfo CompleteFill OrderInfo {volume, price}) =
+    ceiling $ (toInteger (volumeMax volume) % 1) * getPrice price
+  eiOfferedByPrice (OrderExecutionInfo (PartialFill n) OrderInfo {price}) =
+    ceiling $ (toInteger n % 1) * getPrice price
 
 {- | Shrink function for the CanFindOnlyMatching property.
 
@@ -187,15 +192,18 @@ sumOfPrice = foldl (\acc -> (+) acc . eiOfferedByPrice) 0
         * The extra buy order
         * The extra sell order
 -}
-shrinkTuple'
-    :: (OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder)
-    -> [(OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder)]
+shrinkTuple' ::
+  (OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder) ->
+  [(OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder], OrderInfo 'BuyOrder, OrderInfo 'SellOrder)]
 shrinkTuple' (oap, xs, ys, bo, so) =
-    [ (oap, xs', ys, bo, so) | xs' <- shrinkList shrinkOrderInfo xs ] ++
-    [ (oap, xs, ys', bo, so) | ys' <- shrinkList shrinkOrderInfo ys ] ++
-    [ (oap, xs, ys, bo', so) | bo' <- shrinkOrderInfo bo
-                             , volumeMin (volume so) < volumeMax (volume bo')
-                             , price so < price bo' ] ++
-    [ (oap, xs, ys, bo, so') | so' <- shrinkOrderInfo so
-                             , volumeMin (volume bo) < volumeMax (volume so')]
-
+  [(oap, xs', ys, bo, so) | xs' <- shrinkList shrinkOrderInfo xs]
+    ++ [(oap, xs, ys', bo, so) | ys' <- shrinkList shrinkOrderInfo ys]
+    ++ [ (oap, xs, ys, bo', so)
+       | bo' <- shrinkOrderInfo bo
+       , volumeMin (volume so) < volumeMax (volume bo')
+       , price so < price bo'
+       ]
+    ++ [ (oap, xs, ys, bo, so')
+       | so' <- shrinkOrderInfo so
+       , volumeMin (volume bo) < volumeMax (volume so')
+       ]
