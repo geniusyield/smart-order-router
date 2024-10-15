@@ -1,11 +1,10 @@
 module Tests.Prop.Orderbook where
 
 import Control.Monad.Identity (Identity (..))
-import Test.QuickCheck
-import qualified Test.QuickCheck.Monadic as M
-
 import GeniusYield.OrderBot.OrderBook.List
 import GeniusYield.OrderBot.Types
+import Test.QuickCheck
+import qualified Test.QuickCheck.Monadic as M
 import Tests.Prop.Utils
 
 {- | This property checks that the sell order with the lowest price (lowestSell)

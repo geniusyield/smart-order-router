@@ -52,9 +52,8 @@ import Data.Foldable (foldl', foldlM)
 import Data.List (delete, insertBy, sortOn)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
-import Data.Ord (Down (Down))
-
 import Data.Maybe (listToMaybe)
+import Data.Ord (Down (Down))
 import GeniusYield.Api.Dex.Constants (DEXInfo)
 import GeniusYield.OrderBot.DataSource (
   Connection,

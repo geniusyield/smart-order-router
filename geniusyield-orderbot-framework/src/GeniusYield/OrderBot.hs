@@ -27,19 +27,16 @@ import Control.Monad (
  )
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (ToJSON, encode)
+import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (foldl', toList)
 import Data.Functor ((<&>))
 import Data.List (find)
-import Data.Maybe (mapMaybe)
-
-import System.Exit (exitSuccess)
-
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.List.NonEmpty as NE (toList)
 import qualified Data.Map as M
+import Data.Maybe (mapMaybe)
 import qualified Data.Text as Txt
-
+import GeniusYield.Api.Dex.Constants (DEXInfo (..))
 import GeniusYield.GYConfig (
   GYCoreConfig (cfgNetworkId),
   withCfgProviders,
@@ -66,6 +63,7 @@ import GeniusYield.OrderBot.Types (
   assetInfo,
  )
 import GeniusYield.Providers.Common (SubmitTxException)
+import GeniusYield.Transaction (GYCoinSelectionStrategy (GYLegacy))
 import GeniusYield.TxBuilder (
   GYTxBuildResult (..),
   GYTxBuilderMonadIO,
@@ -75,11 +73,9 @@ import GeniusYield.TxBuilder (
   runGYTxQueryMonadIO,
   utxosAtTxOutRefs,
  )
-import GeniusYield.Types
-
-import GeniusYield.Api.Dex.Constants (DEXInfo (..))
-import GeniusYield.Transaction (GYCoinSelectionStrategy (GYLegacy))
 import GeniusYield.TxBuilder.Errors (GYTxMonadException)
+import GeniusYield.Types
+import System.Exit (exitSuccess)
 
 -- | The order bot is product type between bot info and "execution strategies".
 data OrderBot = OrderBot

@@ -12,11 +12,10 @@ module GeniusYield.OrderBot.DataSource.Providers (
   withEachAssetOrders,
 ) where
 
+import Control.Monad.Reader (ReaderT (runReaderT))
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-
-import Control.Monad.Reader (ReaderT (runReaderT))
 import GeniusYield.Api.Dex.Constants (DEXInfo (..))
 import GeniusYield.Api.Dex.PartialOrder
 import GeniusYield.OrderBot.Types

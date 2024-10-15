@@ -1,12 +1,10 @@
 module Tests.Prop.Utils where
 
-import Test.QuickCheck
-
 import Data.Ratio
-
 import Data.String (IsString (fromString))
 import GeniusYield.OrderBot.Types
 import GeniusYield.Types
+import Test.QuickCheck
 
 -- | Generator for the strategy tests. Using a hardcoded assetPair of GOLD <> ADA
 genOrderInfos :: Gen (OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder])

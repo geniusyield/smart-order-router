@@ -1,17 +1,15 @@
 module Tests.Prop.Strategies where
 
 import Control.Monad.Identity (Identity (..))
-import Test.QuickCheck
-import qualified Test.QuickCheck.Monadic as M
-
+import Data.Aeson (encode)
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Ratio
-
-import Data.Aeson (encode)
 import GeniusYield.OrderBot.MatchingStrategy
 import GeniusYield.OrderBot.OrderBook.List
 import GeniusYield.OrderBot.Types
 import GeniusYield.Types
+import Test.QuickCheck
+import qualified Test.QuickCheck.Monadic as M
 import Tests.Prop.Utils
 
 {- | Function that creates the boilerplate for the properties.

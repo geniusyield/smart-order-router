@@ -7,6 +7,10 @@ Stability   : develop
 -}
 module GeniusYield.OrderBot.OrderBotConfig where
 
+import Cardano.Api (
+  AsType (AsPaymentKey, AsSigningKey),
+  deserialiseFromTextEnvelope,
+ )
 import Control.Exception (throwIO)
 import Control.Monad ((<=<))
 import Control.Monad.Error.Class (throwError)
@@ -29,6 +33,14 @@ import Data.Random (sample, shuffle)
 import Data.String (IsString (..))
 import qualified Data.Vector as V
 import GHC.Generics (Generic)
+import GeniusYield.OrderBot
+import GeniusYield.OrderBot.MatchingStrategy (MatchResult)
+import GeniusYield.OrderBot.Strategies (BotStrategy, allStrategies, mkIndependentStrategy)
+import GeniusYield.OrderBot.Types (
+  OrderAssetPair (..),
+  equivalentAssetPair,
+ )
+import GeniusYield.Types
 import System.Envy (
   FromEnv (fromEnv),
   Parser,
@@ -38,20 +50,6 @@ import System.Envy (
   envMaybe,
  )
 import System.Random.MWC (createSystemSeed, fromSeed, initialize)
-
-import Cardano.Api (
-  AsType (AsPaymentKey, AsSigningKey),
-  deserialiseFromTextEnvelope,
- )
-import GeniusYield.OrderBot
-import GeniusYield.OrderBot.MatchingStrategy (MatchResult)
-import GeniusYield.OrderBot.Types (
-  OrderAssetPair (..),
-  equivalentAssetPair,
- )
-import GeniusYield.Types
-
-import GeniusYield.OrderBot.Strategies (BotStrategy, allStrategies, mkIndependentStrategy)
 
 -- | Order bot vanilla config.
 data OrderBotConfig

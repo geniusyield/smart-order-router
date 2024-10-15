@@ -31,13 +31,11 @@ import qualified Data.Aeson as Aeson
 import Data.Kind (Type)
 import Data.Ratio (denominator, numerator, (%))
 import Data.Text (Text)
-import Numeric.Natural (Natural)
-
-import GeniusYield.Types.TxOutRef (GYTxOutRef, showTxOutRef)
-import GeniusYield.Types.Value (GYAssetClass (..))
-
 import GeniusYield.Api.Dex.PartialOrder (PartialOrderInfo (..))
 import GeniusYield.Types (rationalToGHC)
+import GeniusYield.Types.TxOutRef (GYTxOutRef, showTxOutRef)
+import GeniusYield.Types.Value (GYAssetClass (..))
+import Numeric.Natural (Natural)
 
 -------------------------------------------------------------------------------
 -- Information on DEX orders relevant to a matching strategy
@@ -147,6 +145,7 @@ data SOrderType (t :: OrderType) where
   SSellOrder :: SOrderType 'SellOrder
 
 deriving stock instance Eq (SOrderType t)
+
 deriving stock instance Show (SOrderType t)
 
 class SOrderTypeI (t :: OrderType) where
