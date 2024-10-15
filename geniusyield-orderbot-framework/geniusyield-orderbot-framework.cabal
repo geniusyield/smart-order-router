@@ -1,40 +1,46 @@
 cabal-version: 3.4
-name:          geniusyield-orderbot-framework
-synopsis:      Smart Order Router framework
-version:       0.5.0
-build-type:    Simple
-license:       Apache-2.0
-copyright:     (c) 2023 GYELD GMBH
-author:        Lars Bruenjes
-maintainer:    support@geniusyield.co
-category:      Blockchain, Cardano, Framework
+name: geniusyield-orderbot-framework
+synopsis: Smart Order Router framework
+version: 0.5.0
+build-type: Simple
+license: Apache-2.0
+copyright: (c) 2023 GYELD GMBH
+author: Lars Bruenjes
+maintainer: support@geniusyield.co
+category: Blockchain, Cardano, Framework
 extra-doc-files: CHANGELOG.md
 
 -- Common sections
-
 common common-ghc-opts
   ghc-options:
-    -Wall -Wcompat -Wincomplete-uni-patterns -Wno-unused-do-bind
-    -Wno-partial-type-signatures -Wincomplete-record-updates
-    -Wmissing-deriving-strategies -Wno-name-shadowing -Wunused-foralls
-    -Wno-unticked-promoted-constructors -fprint-explicit-foralls
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wno-unused-do-bind
+    -Wno-partial-type-signatures
+    -Wincomplete-record-updates
+    -Wmissing-deriving-strategies
+    -Wno-name-shadowing
+    -Wunused-foralls
+    -Wno-unticked-promoted-constructors
+    -fprint-explicit-foralls
     -fprint-explicit-kinds
 
 common common-deps
   build-depends:
-    , aeson
-    , aeson-pretty
-    , atlas-cardano
-    , base
-    , bytestring
-    , containers
-    , mtl
-    , mwc-random
-    , random
-    , random-fu
-    , serialise
-    , text
-    , time
+    aeson,
+    aeson-pretty,
+    atlas-cardano,
+    base,
+    bytestring,
+    containers,
+    mtl,
+    mwc-random,
+    random,
+    random-fu,
+    serialise,
+    text,
+    time,
 
 common common-lang
   default-language: Haskell2010
@@ -71,8 +77,8 @@ common common-lang
     LambdaCase
     MonomorphismRestriction
     MultiParamTypeClasses
-    NamedFieldPuns
     MultiWayIf
+    NamedFieldPuns
     NoStarIsType
     NumericUnderscores
     OverloadedStrings
@@ -96,84 +102,95 @@ common common-lang
     ViewPatterns
 
 -- Build targets
-
-library            common
-  import:          common-lang
-  import:          common-deps
-  import:          common-ghc-opts
-  visibility:      public
-  hs-source-dirs:  lib-common
+library common
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  visibility: public
+  hs-source-dirs: lib-common
   build-depends:
-    , cardano-api
-    , geniusyield-dex-api
-    , postgresql-simple
-    , postgresql-simple-url
+    cardano-api,
+    geniusyield-dex-api,
+    postgresql-simple,
+    postgresql-simple-url,
+
   exposed-modules:
     GeniusYield.OrderBot.Types
+
   ghc-options:
     -O2
 
-library            datasource
-  import:          common-lang
-  import:          common-ghc-opts
-  visibility:      public
-  hs-source-dirs:  lib-datasource
-  build-depends:   base, atlas-cardano, geniusyield-orderbot-framework:common, geniusyield-dex-api
+library datasource
+  import: common-lang
+  import: common-ghc-opts
+  visibility: public
+  hs-source-dirs: lib-datasource
+  build-depends:
+    atlas-cardano,
+    base,
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+
   signatures:
     GeniusYield.OrderBot.DataSource
 
-library            orderbook
-  import:          common-lang
-  import:          common-ghc-opts
-  visibility:      public
-  hs-source-dirs:  lib-orderbook
+library orderbook
+  import: common-lang
+  import: common-ghc-opts
+  visibility: public
+  hs-source-dirs: lib-orderbook
   build-depends:
-    , aeson
-    , atlas-cardano
-    , base
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot-framework:datasource
-    , geniusyield-dex-api
+    aeson,
+    atlas-cardano,
+    base,
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+    geniusyield-orderbot-framework:datasource,
+
   signatures:
     GeniusYield.OrderBot.OrderBook
+
   exposed-modules:
     GeniusYield.OrderBot.OrderBook.Extra
 
-library            strategies
-  import:          common-lang
-  import:          common-ghc-opts
-  visibility:      public
-  hs-source-dirs:  lib-strategies
+library strategies
+  import: common-lang
+  import: common-ghc-opts
+  visibility: public
+  hs-source-dirs: lib-strategies
   build-depends:
-    , aeson
-    , atlas-cardano
-    , base
-    , envy
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot-framework:orderbook
-    , geniusyield-dex-api
+    aeson,
+    atlas-cardano,
+    base,
+    envy,
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+    geniusyield-orderbot-framework:orderbook,
+
   signatures:
     GeniusYield.OrderBot.Strategies
 
 -- Indefinite library exposing the OrderBot orchestration types and functions.
 library
-  import:          common-lang
-  import:          common-deps
-  import:          common-ghc-opts
-  hs-source-dirs:  src
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  hs-source-dirs: src
   build-depends:
-    , cardano-api
-    , envy
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot-framework:datasource
-    , geniusyield-orderbot-framework:orderbook
-    , geniusyield-orderbot-framework:strategies
-    , geniusyield-dex-api
-    , vector
+    cardano-api,
+    envy,
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+    geniusyield-orderbot-framework:datasource,
+    geniusyield-orderbot-framework:orderbook,
+    geniusyield-orderbot-framework:strategies,
+    vector,
+
   exposed-modules:
     GeniusYield.OrderBot
     GeniusYield.OrderBot.MatchingStrategy
     GeniusYield.OrderBot.OrderBotConfig
     GeniusYield.OrderBot.Run
+
   ghc-options:
     -O2
