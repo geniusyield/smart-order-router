@@ -1,6 +1,6 @@
 cabal-version: 3.4
 name:          geniusyield-orderbot
-version:       0.1.0.0
+version:       0.2.0
 synopsis:      Smart Order Router
 description: Open-source Smart Order Router framework to connect liquidity from
              the GeniusYield DEX to empowers users to deploy their own arbitrage
@@ -16,6 +16,7 @@ category:           Blockchain, Cardano, Framework
 homepage:           https://github.com/geniusyield/smart-order-router#readme
 bug-reports:        https://github.com/geniusyield/smart-order-router/issues
 extra-source-files: README.md
+extra-doc-files: CHANGELOG.md
 
 -- Common sections
 
@@ -111,6 +112,7 @@ library            datasource-providers
     , geniusyield-orderbot-framework:common
     , geniusyield-dex-api
   exposed-modules: GeniusYield.OrderBot.DataSource.Providers
+  visibility: public
 
 library            orderbook-list
   import:          common-lang
@@ -123,31 +125,21 @@ library            orderbook-list
     , geniusyield-dex-api
   exposed-modules:
     GeniusYield.OrderBot.OrderBook.List
+  visibility: public
 
-library           geniusyield-strategies
-  import:         common-lang
-  import:         common-deps
-  import:         common-ghc-opts
-  hs-source-dirs: geniusyield-orderbot/src
+library            strategies-impl
+  import:          common-lang
+  import:          common-deps
+  import:          common-ghc-opts
+  hs-source-dirs:  impl/strategies-impl
   build-depends:
-    , geniusyield-orderbot-framework
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot:datasource-providers
-    , geniusyield-orderbot:orderbook-list
-    , geniusyield-dex-api
     , envy
-    , cardano-api
-  mixins:
-    , geniusyield-orderbot:orderbook-list requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers )
-    , geniusyield-orderbot-framework requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        )
+    , geniusyield-orderbot-framework:common
+    , geniusyield-orderbot-framework:orderbook
+    , geniusyield-dex-api
   exposed-modules:
-    Strategies
-  ghc-options:
-    -O2
+    GeniusYield.OrderBot.Strategies.Impl
+  visibility: public
 
 -- The primary orderbot executable - this must be instantiated with the signature
 -- implementations.
@@ -158,9 +150,6 @@ executable         geniusyield-orderbot-exe
   import:          common-ghc-opts
   hs-source-dirs:  geniusyield-orderbot/src
   main-is:         Main.hs
-  other-modules:
-    OrderBotConfig
-    Strategies
   build-depends:
     , cardano-api
     , envy
@@ -168,7 +157,7 @@ executable         geniusyield-orderbot-exe
     , geniusyield-orderbot-framework:common
     , geniusyield-orderbot:datasource-providers
     , geniusyield-orderbot:orderbook-list
-    , geniusyield-orderbot:geniusyield-strategies
+    , geniusyield-orderbot:strategies-impl
     , geniusyield-dex-api
     , plutus-ledger-api
     , ply-core
@@ -178,6 +167,11 @@ executable         geniusyield-orderbot-exe
     , geniusyield-orderbot-framework requires
         ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
         , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        , GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl
+        )
+    , geniusyield-orderbot:strategies-impl requires
+        ( GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        , GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
         )
   ghc-options:
     -O2 -threaded -rtsopts -with-rtsopts=-N
@@ -200,7 +194,7 @@ test-suite strategies-tests
     , geniusyield-orderbot-framework:common
     , geniusyield-orderbot:datasource-providers
     , geniusyield-orderbot:orderbook-list
-    , geniusyield-orderbot:geniusyield-strategies
+    , geniusyield-orderbot:strategies-impl
     , geniusyield-dex-api
     , QuickCheck
     , tasty
@@ -211,4 +205,9 @@ test-suite strategies-tests
     , geniusyield-orderbot-framework requires
         ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
         , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        , GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl
+        )
+    , geniusyield-orderbot:strategies-impl requires
+        ( GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
+        , GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
         )
