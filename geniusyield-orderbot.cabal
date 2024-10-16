@@ -1,48 +1,55 @@
 cabal-version: 3.4
-name:          geniusyield-orderbot
-version:       0.2.0
-synopsis:      Smart Order Router
-description: Open-source Smart Order Router framework to connect liquidity from
-             the GeniusYield DEX to empowers users to deploy their own arbitrage
-             strategies and bring true decentralization to the Cardano Defi
-             ecosystem.
+name: geniusyield-orderbot
+version: 0.2.0
+synopsis: Smart Order Router
+description:
+  Open-source Smart Order Router framework to connect liquidity from
+  the GeniusYield DEX to empowers users to deploy their own arbitrage
+  strategies and bring true decentralization to the Cardano Defi
+  ecosystem.
 
-license:            Apache-2.0
-license-file:       LICENSE
-copyright:          (c) 2023 GYELD GMBH
-author:             Lars Bruenjes
-maintainer:         support@geniusyield.co
-category:           Blockchain, Cardano, Framework
-homepage:           https://github.com/geniusyield/smart-order-router#readme
-bug-reports:        https://github.com/geniusyield/smart-order-router/issues
+license: Apache-2.0
+license-file: LICENSE
+copyright: (c) 2023 GYELD GMBH
+author: Lars Bruenjes
+maintainer: support@geniusyield.co
+category: Blockchain, Cardano, Framework
+homepage: https://github.com/geniusyield/smart-order-router#readme
+bug-reports: https://github.com/geniusyield/smart-order-router/issues
 extra-source-files: README.md
 extra-doc-files: CHANGELOG.md
 
 -- Common sections
-
 common common-ghc-opts
   ghc-options:
-    -Wall -Wcompat -Wincomplete-uni-patterns -Wno-unused-do-bind
-    -Wno-partial-type-signatures -Wincomplete-record-updates
-    -Wmissing-deriving-strategies -Wno-name-shadowing -Wunused-foralls
-    -Wno-unticked-promoted-constructors -fprint-explicit-foralls
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wno-unused-do-bind
+    -Wno-partial-type-signatures
+    -Wincomplete-record-updates
+    -Wmissing-deriving-strategies
+    -Wno-name-shadowing
+    -Wunused-foralls
+    -Wno-unticked-promoted-constructors
+    -fprint-explicit-foralls
     -fprint-explicit-kinds
 
 common common-deps
   build-depends:
-    , aeson
-    , aeson-pretty
-    , atlas-cardano
-    , base
-    , bytestring
-    , containers
-    , mtl
-    , mwc-random
-    , random
-    , random-fu
-    , serialise
-    , text
-    , vector
+    aeson,
+    aeson-pretty,
+    atlas-cardano,
+    base,
+    bytestring,
+    containers,
+    mtl,
+    mwc-random,
+    random,
+    random-fu,
+    serialise,
+    text,
+    vector,
 
 common common-lang
   default-language: Haskell2010
@@ -79,8 +86,8 @@ common common-lang
     LambdaCase
     MonomorphismRestriction
     MultiParamTypeClasses
-    NoStarIsType
     NamedFieldPuns
+    NoStarIsType
     NumericUnderscores
     OverloadedStrings
     PatternGuards
@@ -102,112 +109,106 @@ common common-lang
     ViewPatterns
 
 -- Build targets
-
-library            datasource-providers
-  import:          common-lang
-  import:          common-deps
-  import:          common-ghc-opts
-  hs-source-dirs:  impl/datasource-providers
+library datasource-providers
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  hs-source-dirs: impl/datasource-providers
   build-depends:
-    , geniusyield-orderbot-framework:common
-    , geniusyield-dex-api
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+
   exposed-modules: GeniusYield.OrderBot.DataSource.Providers
   visibility: public
 
-library            orderbook-list
-  import:          common-lang
-  import:          common-deps
-  import:          common-ghc-opts
-  hs-source-dirs:  impl/orderbook-list
+library orderbook-list
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  hs-source-dirs: impl/orderbook-list
   build-depends:
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot-framework:datasource
-    , geniusyield-dex-api
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+    geniusyield-orderbot-framework:datasource,
+
   exposed-modules:
     GeniusYield.OrderBot.OrderBook.List
+
   visibility: public
 
-library            strategies-impl
-  import:          common-lang
-  import:          common-deps
-  import:          common-ghc-opts
-  hs-source-dirs:  impl/strategies-impl
+library strategies-impl
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  hs-source-dirs: impl/strategies-impl
   build-depends:
-    , envy
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot-framework:orderbook
-    , geniusyield-dex-api
+    envy,
+    geniusyield-dex-api,
+    geniusyield-orderbot-framework:common,
+    geniusyield-orderbot-framework:orderbook,
+
   exposed-modules:
     GeniusYield.OrderBot.Strategies.Impl
+
   visibility: public
 
 -- The primary orderbot executable - this must be instantiated with the signature
 -- implementations.
-
-executable         geniusyield-orderbot-exe
-  import:          common-lang
-  import:          common-deps
-  import:          common-ghc-opts
-  hs-source-dirs:  geniusyield-orderbot/src
-  main-is:         Main.hs
+executable geniusyield-orderbot-exe
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  hs-source-dirs: geniusyield-orderbot/src
+  main-is: Main.hs
   build-depends:
-    , cardano-api
-    , envy
-    , geniusyield-orderbot-framework
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot:datasource-providers
-    , geniusyield-orderbot:orderbook-list
-    , geniusyield-orderbot:strategies-impl
-    , geniusyield-dex-api
-    , plutus-ledger-api
-    , ply-core
+    cardano-api,
+    envy,
+    geniusyield-dex-api,
+    geniusyield-orderbot:datasource-providers,
+    geniusyield-orderbot:orderbook-list,
+    geniusyield-orderbot:strategies-impl,
+    geniusyield-orderbot-framework,
+    geniusyield-orderbot-framework:common,
+    plutus-ledger-api,
+    ply-core,
+
   mixins:
-    , geniusyield-orderbot:orderbook-list requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers )
-    , geniusyield-orderbot-framework requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        , GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl
-        )
-    , geniusyield-orderbot:strategies-impl requires
-        ( GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        , GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        )
+    geniusyield-orderbot:orderbook-list requires (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers),
+    geniusyield-orderbot:strategies-impl requires (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers, GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List),
+    geniusyield-orderbot-framework requires (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers, GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List, GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl),
+
   ghc-options:
-    -O2 -threaded -rtsopts -with-rtsopts=-N
+    -O2
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
 
 test-suite strategies-tests
-  import:         common-lang
-  import:         common-deps
-  import:         common-ghc-opts
-  type:           exitcode-stdio-1.0
-  main-is:        Main.hs
+  import: common-lang
+  import: common-deps
+  import: common-ghc-opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
   hs-source-dirs: geniusyield-orderbot/test/
   other-modules:
-    Tests.Prop.Strategies
     Tests.Prop.Orderbook
+    Tests.Prop.Strategies
     Tests.Prop.Utils
+
   build-depends:
-    , cardano-api
-    , envy
-    , geniusyield-orderbot-framework
-    , geniusyield-orderbot-framework:common
-    , geniusyield-orderbot:datasource-providers
-    , geniusyield-orderbot:orderbook-list
-    , geniusyield-orderbot:strategies-impl
-    , geniusyield-dex-api
-    , QuickCheck
-    , tasty
-    , tasty-quickcheck
+    QuickCheck,
+    cardano-api,
+    envy,
+    geniusyield-dex-api,
+    geniusyield-orderbot:datasource-providers,
+    geniusyield-orderbot:orderbook-list,
+    geniusyield-orderbot:strategies-impl,
+    geniusyield-orderbot-framework,
+    geniusyield-orderbot-framework:common,
+    tasty,
+    tasty-quickcheck,
+
   mixins:
-    , geniusyield-orderbot:orderbook-list requires
-        (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers)
-    , geniusyield-orderbot-framework requires
-        ( GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        , GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        , GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl
-        )
-    , geniusyield-orderbot:strategies-impl requires
-        ( GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List
-        , GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers
-        )
+    geniusyield-orderbot:orderbook-list requires (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers),
+    geniusyield-orderbot:strategies-impl requires (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers, GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List),
+    geniusyield-orderbot-framework requires (GeniusYield.OrderBot.DataSource as GeniusYield.OrderBot.DataSource.Providers, GeniusYield.OrderBot.OrderBook as GeniusYield.OrderBot.OrderBook.List, GeniusYield.OrderBot.Strategies as GeniusYield.OrderBot.Strategies.Impl),

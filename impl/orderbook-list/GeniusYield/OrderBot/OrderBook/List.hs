@@ -1,10 +1,9 @@
-{-|
+{- |
 Module      : GeniusYield.OrderBot.OrderBook.List
 Copyright   : (c) 2023 GYELD GMBH
 License     : Apache 2.0
 Maintainer  : support@geniusyield.co
 Stability   : develop
-
 -}
 module GeniusYield.OrderBot.OrderBook.List (
   -- * Core Order book types
@@ -43,22 +42,24 @@ module GeniusYield.OrderBot.OrderBook.List (
   volumeGTPrice,
   volumeGTEPrice,
   nullOrders,
+
   -- * MultiAssetOrderBook reading utilities
   withEachAsset,
 ) where
 
-import           Data.Aeson                      (ToJSON, object, toJSON)
-import           Data.Foldable                   (foldl', foldlM)
-import           Data.List                       (delete, insertBy, sortOn)
-import           Data.Map.Strict                 (Map)
-import qualified Data.Map.Strict                 as M
-import           Data.Ord                        (Down (Down))
-
-import           Data.Maybe                      (listToMaybe)
-import           GeniusYield.Api.Dex.Constants   (DEXInfo)
-import           GeniusYield.OrderBot.DataSource (Connection,
-                                                  withEachAssetOrders)
-import           GeniusYield.OrderBot.Types
+import Data.Aeson (ToJSON, object, toJSON)
+import Data.Foldable (foldl', foldlM)
+import Data.List (delete, insertBy, sortOn)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
+import Data.Maybe (listToMaybe)
+import Data.Ord (Down (Down))
+import GeniusYield.Api.Dex.Constants (DEXInfo)
+import GeniusYield.OrderBot.DataSource (
+  Connection,
+  withEachAssetOrders,
+ )
+import GeniusYield.OrderBot.Types
 
 type MultiAssetOrderBook = Map OrderAssetPair OrderBook
 
@@ -73,18 +74,18 @@ newtype Orders t = Orders {unOrders :: [OrderInfo t]}
 
 data OrderBook = OrderBook
   { sellOrders :: Orders 'SellOrder
-  , buyOrders  :: Orders 'BuyOrder
+  , buyOrders :: Orders 'BuyOrder
   }
   deriving stock (Show, Eq)
 
 instance ToJSON OrderBook where
-    toJSON _ = object []
+  toJSON _ = object []
 
-populateOrderBook
-    :: Connection
-    -> DEXInfo
-    -> [OrderAssetPair]
-    -> IO MultiAssetOrderBook
+populateOrderBook ::
+  Connection ->
+  DEXInfo ->
+  [OrderAssetPair] ->
+  IO MultiAssetOrderBook
 populateOrderBook conn dex f = do
   multiAssetBookL <-
     withEachAssetOrders
@@ -95,27 +96,31 @@ populateOrderBook conn dex f = do
       []
   pure $ mkMultiAssetOrderBook multiAssetBookL
 
-buildOrderBookList
-  :: [(OrderAssetPair, OrderBook)]
-  -> (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #)
-  -> [(OrderAssetPair, OrderBook)]
+buildOrderBookList ::
+  [(OrderAssetPair, OrderBook)] ->
+  (# OrderAssetPair, [OrderInfo 'BuyOrder], [OrderInfo 'SellOrder] #) ->
+  [(OrderAssetPair, OrderBook)]
 buildOrderBookList acc (# _, _, [] #) = acc
 buildOrderBookList acc (# _, [], _ #) = acc
 buildOrderBookList acc (# oap, buyOrders, sellOrders #) =
-  (oap, OrderBook (Orders $ sortOn price sellOrders)
-                  (Orders $ sortOn (Down . price) buyOrders)) : acc
+  ( oap
+  , OrderBook
+      (Orders $ sortOn price sellOrders)
+      (Orders $ sortOn (Down . price) buyOrders)
+  )
+    : acc
 
 emptyOrders :: Orders t
 emptyOrders = Orders []
 
 unconsOrders :: Orders t -> Maybe (OrderInfo t, Orders t)
-unconsOrders (Orders [])       = Nothing
+unconsOrders (Orders []) = Nothing
 unconsOrders (Orders (x : xs)) = Just (x, Orders xs)
 
 insertOrder :: OrderInfo t -> Orders t -> Orders t
 insertOrder oi (Orders os) = Orders $
   case orderType oi of
-    SBuyOrder  -> insertBy (\oadd opresent -> compare (price opresent) (price oadd)) oi os
+    SBuyOrder -> insertBy (\oadd opresent -> compare (price opresent) (price oadd)) oi os
     SSellOrder -> insertBy (\oadd opresent -> compare (price oadd) (price opresent)) oi os
 
 deleteOrder :: OrderInfo t -> Orders t -> Orders t

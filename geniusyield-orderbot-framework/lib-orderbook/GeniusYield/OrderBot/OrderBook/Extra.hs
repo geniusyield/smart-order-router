@@ -1,4 +1,4 @@
-{-|
+{- |
 Module      : GeniusYield.OrderBot.OrderBook.Extra
 Synopsis    : Extra utilities when working with order books.
 Copyright   : (c) 2023 GYELD GMBH
@@ -12,9 +12,9 @@ module GeniusYield.OrderBot.OrderBook.Extra (
   lookupBest,
 ) where
 
-import           Prelude                         (Maybe, Monad, (*>), pure)
-import           GeniusYield.OrderBot.Types      (OrderInfo, SOrderTypeI (..), SOrderType (..), OrderType)
-import           GeniusYield.OrderBot.OrderBook
+import GeniusYield.OrderBot.OrderBook
+import GeniusYield.OrderBot.Types (OrderInfo, OrderType, SOrderType (..), SOrderTypeI (..))
+import Prelude (Maybe, Monad, pure, (*>))
 
 -- | @foldlM'@ variant for 'Orders' which is strict in accumulator.
 foldlMOrders' :: forall a t m. Monad m => (a -> OrderInfo t -> m a) -> a -> Orders t -> m a
@@ -27,5 +27,5 @@ mapMOrders_ f os = foldlMOrders' (\_ oi -> f oi *> pure ()) () os
 -- | In case we have buy orders, return the best buy order (highest price). And in case we have sell orders, return the best sell order (lowest price).
 lookupBest :: forall (t :: OrderType). SOrderTypeI t => Orders t -> Maybe (OrderInfo t)
 lookupBest os = case (sOrderType @t) of
-  SBuyOrder  -> highestBuyMaybe os
+  SBuyOrder -> highestBuyMaybe os
   SSellOrder -> lowestSellMaybe os
