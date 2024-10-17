@@ -101,6 +101,8 @@ data OrderBot = OrderBot
   , botTakeMatches :: [MatchResult] -> IO [MatchResult]
   -- ^ How and how many matching results do the bot takes to build, sign and
   --          submit every iteration.
+  , botLovelaceWarningThreshold :: Maybe Natural
+  -- ^ See 'botCLovelaceWarningThreshold'.
   }
 
 {- | Currently, we only have the parallel execution strategy: @MultiAssetTraverse@,
@@ -128,6 +130,7 @@ runOrderBot
     , botAssetPairFilter
     , botRescanDelay
     , botTakeMatches
+    , botLovelaceWarningThreshold
     } = do
     withCfgProviders cfg "" $ \providers -> do
       let logInfo = gyLogInfo providers "SOR"
@@ -146,6 +149,7 @@ runOrderBot
           , "  Wallet Addresses: " ++ show (Txt.unpack . addressToText <$> botAddrs)
           , "  Change Address: " ++ (Txt.unpack . addressToText $ botChangeAddr)
           , "  Collateral: " ++ show botCollateral
+          , "  Lovelace balance warning threshold: " ++ show botLovelaceWarningThreshold
           , "  Scan delay (µs): " ++ show botRescanDelay
           , "  Token Pairs to scan:"
           , unlines (map (("\t - " ++) . show) botAssetPairFilter)
