@@ -32,6 +32,7 @@ import Data.List (nub)
 import Data.Random (sample, shuffle)
 import Data.String (IsString (..))
 import qualified Data.Vector as V
+import Data.Word (Word64)
 import GHC.Generics (Generic)
 import GeniusYield.OrderBot
 import GeniusYield.OrderBot.MatchingStrategy (MatchResult)
@@ -79,13 +80,14 @@ data OrderBotConfig
   , botCRandomizeMatchesFound :: Bool
   -- ^ A boolean that dictates whether the bot chooses the tx to submit at
   --          random (to decrease collisions), or not (to maximize profit)
+  , botCLovelaceWarningThreshold :: Maybe Natural
+  -- ^ If bot's lovelace balance falls below this value, bot would log warning logs.
   }
   deriving stock (Show, Eq, Generic)
 
 instance FromEnv OrderBotConfig where
   fromEnv _ =
-    OrderBotConfig
-      <$> (Right . parseCBORSKey <$> env "BOTC_SKEY")
+    (OrderBotConfig . Right . parseCBORSKey <$> env "BOTC_SKEY")
       <*> (fmap fromString <$> envMaybe "BOTC_STAKE_ADDRESS")
       <*> (fmap fromString <$> envMaybe "BOTC_COLLATERAL")
       <*> envWithMsg ("Invalid Strategy. Must be one of: " ++ show allStrategies) "BOTC_EXECUTION_STRAT"
@@ -94,6 +96,8 @@ instance FromEnv OrderBotConfig where
       <*> envIntWithMsg "BOTC_MAX_ORDERS_MATCHES"
       <*> envIntWithMsg "BOTC_MAX_TXS_PER_ITERATION"
       <*> envWithMsg "Must be either 'True' or 'False'" "BOTC_RANDOMIZE_MATCHES_FOUND"
+      -- Apparently, there is no `Var` instance for `Natural` in `System.Envy`.
+      <*> (fmap (fromIntegral @Word64 @Natural) <$> envMaybe "BOTC_LOVELACE_WARNING_THRESHOLD")
    where
     parseCBORSKey :: String -> GYPaymentSigningKey
     parseCBORSKey s =
@@ -115,8 +119,7 @@ envWithMsg msg name = maybe (throwError $ unwords ["Error parsing enviroment var
 
 instance FromJSON OrderBotConfig where
   parseJSON (Object obj) =
-    OrderBotConfig
-      <$> (Left <$> obj .: "signingKeyFP")
+    (OrderBotConfig . Left <$> (obj .: "signingKeyFP"))
       <*> obj .:? "stakeAddress"
       <*> obj .:? "collateral"
       <*> obj .: "strategy"
@@ -125,6 +128,7 @@ instance FromJSON OrderBotConfig where
       <*> obj .: "maxOrderMatches"
       <*> obj .: "maxTxsPerIteration"
       <*> obj .: "randomizeMatchesFound"
+      <*> obj .:? "lovelaceWarningThreshold"
   parseJSON _ = fail "Expecting object value"
 
 parseScanTokenPairs :: Value -> Aeson.Parser [OrderAssetPair]
@@ -152,6 +156,7 @@ buildOrderBot
     , botCMaxOrderMatches
     , botCMaxTxsPerIteration
     , botCRandomizeMatchesFound
+    , botCLovelaceWarningThreshold
     } = do
     skey <- either readPaymentSigningKey return botCSkey
     maxOrderMatch <- intToNatural "Max Order matches amount" botCMaxOrderMatches
@@ -170,6 +175,7 @@ buildOrderBot
         , botAssetPairFilter = nub oneEquivalentAssetPair
         , botRescanDelay = botCRescanDelay
         , botTakeMatches = takeMatches botCRandomizeMatchesFound maxTxPerIter
+        , botLovelaceWarningThreshold = botCLovelaceWarningThreshold
         }
    where
     buildCollateral :: Maybe (GYTxOutRef, Bool)
