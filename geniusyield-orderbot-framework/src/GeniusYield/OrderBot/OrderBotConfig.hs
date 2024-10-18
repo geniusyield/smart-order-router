@@ -82,7 +82,7 @@ data OrderBotConfig
   --          random (to decrease collisions), or not (to maximize profit)
   , botCLovelaceWarningThreshold :: Maybe Natural
   -- ^ If bot's lovelace balance falls below this value, bot would log warning logs.
-  , botCPriceProvider :: Maybe PriceProvider
+  , botCPriceProvider :: Maybe PriceProviderConfig
   }
   deriving stock (Show, Generic)
 

@@ -6,7 +6,7 @@ Maintainer  : support@geniusyield.co
 Stability   : develop
 -}
 module GeniusYield.OrderBot (
-  PriceProvider (..),
+  PriceProviderConfig (..),
   OrderBot (..),
   ExecutionStrategy (..),
   runOrderBot,
@@ -25,6 +25,7 @@ import Control.Monad (
   filterM,
   forever,
   unless,
+  when,
  )
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (encode)
@@ -45,6 +46,7 @@ import GeniusYield.GYConfig (
   GYCoreConfig (cfgNetworkId),
   withCfgProviders,
  )
+import GeniusYield.Imports (coerce)
 import GeniusYield.OrderBot.DataSource (closeDB, connectDB)
 import GeniusYield.OrderBot.MatchingStrategy (
   IndependentStrategy,
@@ -67,6 +69,9 @@ import GeniusYield.OrderBot.Types (
   assetInfo,
  )
 import GeniusYield.Providers.Common (SubmitTxException)
+import GeniusYield.Providers.Maestro (networkIdToMaestroEnv)
+import GeniusYield.Server.Ctx (TapToolsEnv (..))
+import GeniusYield.Server.Dex.HistoricalPrices.TapTools.Client
 import GeniusYield.Transaction (GYCoinSelectionStrategy (GYLegacy))
 import GeniusYield.TxBuilder (
   GYTxBuildResult (..),
@@ -75,10 +80,12 @@ import GeniusYield.TxBuilder (
   buildTxBodyParallelWithStrategy,
   runGYTxBuilderMonadIO,
   runGYTxQueryMonadIO,
+  utxosAtAddresses,
   utxosAtTxOutRefs,
  )
 import GeniusYield.TxBuilder.Errors (GYTxMonadException)
 import GeniusYield.Types
+import qualified Maestro.Client.V1 as Maestro
 import qualified Maestro.Types.V1 as Maestro
 import System.Exit (exitSuccess)
 
@@ -93,7 +100,7 @@ data MaestroConfig = MaestroConfig
 
 data TapToolsConfig = TapToolsConfig
   { ttcApiKey :: !(Confidential Text)
-  , ttcPairOverride :: !(Maybe TaptoolsPairOverride)
+  , ttcPairOverride :: !(Maybe TapToolsPairOverride)
   }
   deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "ttc", Maestro.LowerFirst]] TapToolsConfig
@@ -105,19 +112,60 @@ data MaestroPairOverride = MaestroPairOverride
   deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "mpo", Maestro.LowerFirst]] MaestroPairOverride
 
-data TaptoolsPairOverride = TaptoolsPairOverride
+data TapToolsPairOverride = TapToolsPairOverride
   { ttpoAsset :: !GYAssetClass
   , ttpoPrecision :: !Natural
   }
   deriving stock (Show, Generic)
-  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "ttpo", Maestro.LowerFirst]] TaptoolsPairOverride
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "ttpo", Maestro.LowerFirst]] TapToolsPairOverride
 
 -- | Price provider to get ADA price of a token.
-data PriceProvider
-  = TapToolsPriceProvider !TapToolsConfig
-  | MaestroPriceProvider !MaestroConfig
+data PriceProviderConfig
+  = TapToolsPriceProviderConfig !TapToolsConfig
+  | MaestroPriceProviderConfig !MaestroConfig
   deriving stock (Show, Generic)
-  deriving (FromJSON, ToJSON) via CustomJSON '[ConstructorTagModifier '[Maestro.LowerFirst]] PriceProvider
+  deriving (FromJSON, ToJSON) via CustomJSON '[ConstructorTagModifier '[Rename "TapToolsPriceProviderConfig" "tapTools", Rename "MaestroPriceProviderConfig" "maestro"]] PriceProviderConfig
+
+data MaestroPP = MaestroPP
+  { mppEnv :: !(Maestro.MaestroEnv 'Maestro.V1)
+  , mppResolution :: !Maestro.Resolution
+  , mppDex :: !Maestro.Dex
+  , mppPairOverride :: !(Maybe MaestroPairOverride)
+  }
+
+data TapToolsPP = TapToolsPP
+  { ttppEnv :: !TapToolsEnv
+  , ttppPairOverride :: !(Maybe TapToolsPairOverride)
+  }
+
+data PriceProvider
+  = TapToolsPriceProvider !TapToolsPP
+  | MaestroPriceProvider !MaestroPP
+
+buildTapToolsPP :: TapToolsConfig -> IO TapToolsPP
+buildTapToolsPP TapToolsConfig {..} = do
+  tcenv <- tapToolsClientEnv
+  let tenv = TapToolsEnv tcenv (coerce ttcApiKey)
+  pure
+    TapToolsPP
+      { ttppEnv = tenv
+      , ttppPairOverride = ttcPairOverride
+      }
+
+buildMaestroPP :: MaestroConfig -> IO MaestroPP
+buildMaestroPP MaestroConfig {..} = do
+  env <- networkIdToMaestroEnv (coerce mcApiKey) GYMainnet
+  pure
+    MaestroPP
+      { mppEnv = env
+      , mppResolution = mcResolution
+      , mppDex = mcDex
+      , mppPairOverride = mcPairOverride
+      }
+
+buildPP :: PriceProviderConfig -> IO PriceProvider
+buildPP (TapToolsPriceProviderConfig ttpc) = TapToolsPriceProvider <$> buildTapToolsPP ttpc
+buildPP (MaestroPriceProviderConfig mpc) = MaestroPriceProvider <$> buildMaestroPP mpc
 
 -- | The order bot is product type between bot info and "execution strategies".
 data OrderBot = OrderBot
@@ -145,7 +193,7 @@ data OrderBot = OrderBot
   --          submit every iteration.
   , botLovelaceWarningThreshold :: Maybe Natural
   -- ^ See 'botCLovelaceWarningThreshold'.
-  , botPriceProvider :: Maybe PriceProvider
+  , botPriceProvider :: Maybe PriceProviderConfig
   -- ^ The price provider for the bot, used in case arbitrage is in non-ada token & we need to decide if the arbitraged tokens compensate the ada lost due to transaction fees.
   }
 
@@ -178,8 +226,10 @@ runOrderBot
     , botPriceProvider
     } = do
     withCfgProviders cfg "" $ \providers -> do
-      let logInfo = gyLogInfo providers "SOR"
-          logDebug = gyLogDebug providers "SOR"
+      let logInfo = gyLogInfo providers sorNS
+          logDebug = gyLogDebug providers sorNS
+          logWarn = gyLogWarning providers sorNS
+          sorNS = "SOR"
 
           netId = cfgNetworkId cfg
           botPkh = paymentKeyHash $ paymentVerificationKey botSkey
@@ -204,7 +254,22 @@ runOrderBot
       bracket (connectDB netId providers) closeDB $ \conn -> forever $
         handle (handleAnyException providers) $ do
           logInfo "Rescanning for orders..."
-
+          botUtxos <- runGYTxQueryMonadIO netId providers $ utxosAtAddresses botAddrs
+          let botBalance = foldMapUTxOs utxoValue botUtxos
+              botLovelaceBalance = valueAssetClass botBalance GYLovelace
+          logInfo $
+            unwords
+              [ "Bot balance:"
+              , show botBalance
+              ]
+          when (botLovelaceBalance < maybe 0 fromIntegral botLovelaceWarningThreshold) $
+            logWarn $
+              unwords
+                [ "Bot lovelace balance is below the warning threshold. Threshold:"
+                , show botLovelaceWarningThreshold
+                , ", bot lovelace balance:"
+                , show botLovelaceBalance
+                ]
           -- First we populate the multi asset orderbook, using the provided
           -- @populateOrderBook@.
           book <- populateOrderBook conn di botAssetPairFilter
