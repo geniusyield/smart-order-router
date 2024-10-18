@@ -178,12 +178,14 @@ library
   hs-source-dirs: src
   build-depends:
     cardano-api,
+    deriving-aeson,
     envy,
     geniusyield-dex-api,
     geniusyield-orderbot-framework:common,
     geniusyield-orderbot-framework:datasource,
     geniusyield-orderbot-framework:orderbook,
     geniusyield-orderbot-framework:strategies,
+    maestro-sdk,
     vector,
 
   exposed-modules:

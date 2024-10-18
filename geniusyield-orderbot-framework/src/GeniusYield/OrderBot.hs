@@ -6,6 +6,7 @@ Maintainer  : support@geniusyield.co
 Stability   : develop
 -}
 module GeniusYield.OrderBot (
+  PriceProvider (..),
   OrderBot (..),
   ExecutionStrategy (..),
   runOrderBot,
@@ -26,7 +27,7 @@ import Control.Monad (
   unless,
  )
 import Control.Monad.Reader (runReaderT)
-import Data.Aeson (ToJSON, encode)
+import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (foldl', toList)
@@ -35,9 +36,12 @@ import Data.List (find)
 import qualified Data.List.NonEmpty as NE (toList)
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe)
+import Data.Text (Text)
 import qualified Data.Text as Txt
+import Deriving.Aeson
 import GeniusYield.Api.Dex.Constants (DEXInfo (..))
 import GeniusYield.GYConfig (
+  Confidential (..),
   GYCoreConfig (cfgNetworkId),
   withCfgProviders,
  )
@@ -75,7 +79,45 @@ import GeniusYield.TxBuilder (
  )
 import GeniusYield.TxBuilder.Errors (GYTxMonadException)
 import GeniusYield.Types
+import qualified Maestro.Types.V1 as Maestro
 import System.Exit (exitSuccess)
+
+data MaestroConfig = MaestroConfig
+  { mcApiKey :: !(Confidential Text)
+  , mcResolution :: !Maestro.Resolution
+  , mcDex :: !Maestro.Dex
+  , mcPairOverride :: !(Maybe MaestroPairOverride)
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "mc", Maestro.LowerFirst]] MaestroConfig
+
+data TapToolsConfig = TapToolsConfig
+  { ttcApiKey :: !(Confidential Text)
+  , ttcPairOverride :: !(Maybe TaptoolsPairOverride)
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "ttc", Maestro.LowerFirst]] TapToolsConfig
+
+data MaestroPairOverride = MaestroPairOverride
+  { mpoPair :: !String
+  , mpoCommodityIsFirst :: !Bool
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "mpo", Maestro.LowerFirst]] MaestroPairOverride
+
+data TaptoolsPairOverride = TaptoolsPairOverride
+  { ttpoAsset :: !GYAssetClass
+  , ttpoPrecision :: !Natural
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "ttpo", Maestro.LowerFirst]] TaptoolsPairOverride
+
+-- | Price provider to get ADA price of a token.
+data PriceProvider
+  = TapToolsPriceProvider !TapToolsConfig
+  | MaestroPriceProvider !MaestroConfig
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[ConstructorTagModifier '[Maestro.LowerFirst]] PriceProvider
 
 -- | The order bot is product type between bot info and "execution strategies".
 data OrderBot = OrderBot
@@ -103,6 +145,8 @@ data OrderBot = OrderBot
   --          submit every iteration.
   , botLovelaceWarningThreshold :: Maybe Natural
   -- ^ See 'botCLovelaceWarningThreshold'.
+  , botPriceProvider :: Maybe PriceProvider
+  -- ^ The price provider for the bot, used in case arbitrage is in non-ada token & we need to decide if the arbitraged tokens compensate the ada lost due to transaction fees.
   }
 
 {- | Currently, we only have the parallel execution strategy: @MultiAssetTraverse@,
@@ -131,6 +175,7 @@ runOrderBot
     , botRescanDelay
     , botTakeMatches
     , botLovelaceWarningThreshold
+    , botPriceProvider
     } = do
     withCfgProviders cfg "" $ \providers -> do
       let logInfo = gyLogInfo providers "SOR"
@@ -140,7 +185,6 @@ runOrderBot
           botPkh = paymentKeyHash $ paymentVerificationKey botSkey
           botChangeAddr = addressFromCredential netId (GYPaymentCredentialByKey botPkh) (stakeAddressToCredential . stakeAddressFromBech32 <$> botStakeAddress)
           botAddrs = [botChangeAddr]
-
       logInfo $
         unlines
           [ ""
@@ -151,6 +195,7 @@ runOrderBot
           , "  Collateral: " ++ show botCollateral
           , "  Lovelace balance warning threshold: " ++ show botLovelaceWarningThreshold
           , "  Scan delay (µs): " ++ show botRescanDelay
+          , "  Bot price configuration: " ++ show botPriceProvider
           , "  Token Pairs to scan:"
           , unlines (map (("\t - " ++) . show) botAssetPairFilter)
           , ""
