@@ -32,6 +32,7 @@ import Data.List (nub)
 import Data.Random (sample, shuffle)
 import Data.String (IsString (..))
 import qualified Data.Vector as V
+import Data.Word (Word64)
 import GHC.Generics (Generic)
 import GeniusYield.OrderBot
 import GeniusYield.OrderBot.MatchingStrategy (MatchResult)
@@ -79,13 +80,15 @@ data OrderBotConfig
   , botCRandomizeMatchesFound :: Bool
   -- ^ A boolean that dictates whether the bot chooses the tx to submit at
   --          random (to decrease collisions), or not (to maximize profit)
+  , botCLovelaceWarningThreshold :: Maybe Natural
+  -- ^ If bot's lovelace balance falls below this value, bot would log warning logs.
+  , botCPriceProvider :: Maybe PriceProviderConfig
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
 
 instance FromEnv OrderBotConfig where
   fromEnv _ =
-    OrderBotConfig
-      <$> (Right . parseCBORSKey <$> env "BOTC_SKEY")
+    (OrderBotConfig . Right . parseCBORSKey <$> env "BOTC_SKEY")
       <*> (fmap fromString <$> envMaybe "BOTC_STAKE_ADDRESS")
       <*> (fmap fromString <$> envMaybe "BOTC_COLLATERAL")
       <*> envWithMsg ("Invalid Strategy. Must be one of: " ++ show allStrategies) "BOTC_EXECUTION_STRAT"
@@ -94,6 +97,9 @@ instance FromEnv OrderBotConfig where
       <*> envIntWithMsg "BOTC_MAX_ORDERS_MATCHES"
       <*> envIntWithMsg "BOTC_MAX_TXS_PER_ITERATION"
       <*> envWithMsg "Must be either 'True' or 'False'" "BOTC_RANDOMIZE_MATCHES_FOUND"
+      -- Apparently, there is no `Var` instance for `Natural` in `System.Envy`.
+      <*> (fmap (fromIntegral @Word64 @Natural) <$> envMaybe "BOTC_LOVELACE_WARNING_THRESHOLD")
+      <*> (fmap forceFromJson <$> envMaybe "BOTC_PRICE_PROVIDER")
    where
     parseCBORSKey :: String -> GYPaymentSigningKey
     parseCBORSKey s =
@@ -107,6 +113,9 @@ instance FromEnv OrderBotConfig where
         eitherDecodeStrict (fromString s)
           >>= Aeson.parseEither parseScanTokenPairs
 
+    forceFromJson :: FromJSON a => String -> a
+    forceFromJson = either error id . eitherDecodeStrict . fromString
+
 envIntWithMsg :: Var a => String -> Parser a
 envIntWithMsg = envWithMsg "Not a number"
 
@@ -115,8 +124,7 @@ envWithMsg msg name = maybe (throwError $ unwords ["Error parsing enviroment var
 
 instance FromJSON OrderBotConfig where
   parseJSON (Object obj) =
-    OrderBotConfig
-      <$> (Left <$> obj .: "signingKeyFP")
+    (OrderBotConfig . Left <$> (obj .: "signingKeyFP"))
       <*> obj .:? "stakeAddress"
       <*> obj .:? "collateral"
       <*> obj .: "strategy"
@@ -125,6 +133,8 @@ instance FromJSON OrderBotConfig where
       <*> obj .: "maxOrderMatches"
       <*> obj .: "maxTxsPerIteration"
       <*> obj .: "randomizeMatchesFound"
+      <*> obj .:? "lovelaceWarningThreshold"
+      <*> obj .:? "priceProvider"
   parseJSON _ = fail "Expecting object value"
 
 parseScanTokenPairs :: Value -> Aeson.Parser [OrderAssetPair]
@@ -141,45 +151,36 @@ parseObjectTokenPair = withObject "OrderAssetPair" $ \v ->
 
 -- | Given a vanilla order bot configuration, builds a complete order bot setup.
 buildOrderBot :: OrderBotConfig -> IO OrderBot
-buildOrderBot
-  OrderBotConfig
-    { botCSkey
-    , botCStakeAddress
-    , botCCollateral
-    , botCExecutionStrat
-    , botCAssetFilter
-    , botCRescanDelay
-    , botCMaxOrderMatches
-    , botCMaxTxsPerIteration
-    , botCRandomizeMatchesFound
-    } = do
-    skey <- either readPaymentSigningKey return botCSkey
-    maxOrderMatch <- intToNatural "Max Order matches amount" botCMaxOrderMatches
-    maxTxPerIter <- intToNatural "Max Tx per iteration" botCMaxTxsPerIteration
-    oneEquivalentAssetPair <-
-      if hasNoneEquivalentAssetPair botCAssetFilter
-        then return $ nub botCAssetFilter
-        else throwIO $ userError "Can't have equivalent order asset pairs scanTokens"
-    return $
-      OrderBot
-        { botSkey = skey
-        , botStakeAddress = botCStakeAddress
-        , botCollateral = buildCollateral
-        , botExecutionStrat =
-            MultiAssetTraverse $ mkIndependentStrategy botCExecutionStrat maxOrderMatch
-        , botAssetPairFilter = nub oneEquivalentAssetPair
-        , botRescanDelay = botCRescanDelay
-        , botTakeMatches = takeMatches botCRandomizeMatchesFound maxTxPerIter
-        }
-   where
-    buildCollateral :: Maybe (GYTxOutRef, Bool)
-    buildCollateral = (,False) <$> botCCollateral
+buildOrderBot OrderBotConfig {..} = do
+  skey <- either readPaymentSigningKey return botCSkey
+  maxOrderMatch <- intToNatural "Max Order matches amount" botCMaxOrderMatches
+  maxTxPerIter <- intToNatural "Max Tx per iteration" botCMaxTxsPerIteration
+  oneEquivalentAssetPair <-
+    if hasNoneEquivalentAssetPair botCAssetFilter
+      then return $ nub botCAssetFilter
+      else throwIO $ userError "Can't have equivalent order asset pairs scanTokens"
+  return $
+    OrderBot
+      { botSkey = skey
+      , botStakeAddress = botCStakeAddress
+      , botCollateral = buildCollateral
+      , botExecutionStrat =
+          MultiAssetTraverse $ mkIndependentStrategy botCExecutionStrat maxOrderMatch
+      , botAssetPairFilter = nub oneEquivalentAssetPair
+      , botRescanDelay = botCRescanDelay
+      , botTakeMatches = takeMatches botCRandomizeMatchesFound maxTxPerIter
+      , botLovelaceWarningThreshold = botCLovelaceWarningThreshold
+      , botPriceProvider = botCPriceProvider
+      }
+ where
+  buildCollateral :: Maybe (GYTxOutRef, Bool)
+  buildCollateral = (,False) <$> botCCollateral
 
-    hasNoneEquivalentAssetPair :: [OrderAssetPair] -> Bool
-    hasNoneEquivalentAssetPair [] = True
-    hasNoneEquivalentAssetPair (oap : oaps) =
-      not (any (equivalentAssetPair oap) oaps)
-        && hasNoneEquivalentAssetPair oaps
+  hasNoneEquivalentAssetPair :: [OrderAssetPair] -> Bool
+  hasNoneEquivalentAssetPair [] = True
+  hasNoneEquivalentAssetPair (oap : oaps) =
+    not (any (equivalentAssetPair oap) oaps)
+      && hasNoneEquivalentAssetPair oaps
 
 readBotConfig :: Maybe FilePath -> IO OrderBotConfig
 readBotConfig =

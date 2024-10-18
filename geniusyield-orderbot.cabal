@@ -1,4 +1,4 @@
-cabal-version: 3.4
+cabal-version: 3.12
 name: geniusyield-orderbot
 version: 0.2.0
 synopsis: Smart Order Router
