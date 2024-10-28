@@ -99,8 +99,8 @@ import System.Exit (exitSuccess)
 import Web.HttpApiData (ToHttpApiData (..))
 
 data AssetInfo = AssetInfo
-  { assetTicker :: Text
-  , assetDecimals :: Word64
+  { assetTicker :: !Text
+  , assetDecimals :: !Word64
   }
   deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "asset", Maestro.LowerFirst]] AssetInfo
@@ -458,14 +458,15 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
       botAssets = valueAssets filteredACInput
       fees = txBodyFee txBody
       nonAdaTokenArbitrage = M.fromList $ filter ((/= 0) . snd) $ map (\ac -> (ac, valueAssetClass filteredACOutput ac - valueAssetClass filteredACInput ac)) $ toList botAssets
-      filteredACCheck = all (> 0) $ M.elems nonAdaTokenArbitrage -- We already filtered for zero values.
+      filteredACCheck = all (> 0) $ M.elems nonAdaTokenArbitrage -- Note that we have already filtered for zero values.
   lovelaceCheck <-
     if all currencyIsLovelace oapFilter
       then pure (outputLovelace >= inputLovelace)
       else case mpp of
-        Nothing -> pure $ inputLovelace - outputLovelace <= fees -- Should include flat taker fee here as well.
+        Nothing -> pure $ inputLovelace - outputLovelace <= fees -- Ideally, we should be including flat taker fee here as well since matching algorithm is agnostic of current DEX requirement.
         Just pp -> do
           let tokensWithInfos = M.restrictKeys assetInfos (M.keysSet nonAdaTokenArbitrage)
+          logDebug $ "TokensWithInfos: " ++ show tokensWithInfos
           accLovelace <- do
             priceInfos <- case pp of
               MaestroPriceProvider mpp -> do
@@ -478,6 +479,7 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
                   $ M.toList tokensWithInfos
               TapToolsPriceProvider tpp -> do
                 getLovelacePriceOfAssetsTapTools tpp tokensWithInfos
+            logDebug $ "PriceInfos: " ++ show priceInfos
             foldlM'
               ( \accLovelace (ac, amt) -> do
                   if not (M.member ac assetInfos)
@@ -495,6 +497,10 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
               )
               0
               $ M.toList nonAdaTokenArbitrage
+          logDebug $ "AccLovelace: " ++ show accLovelace
+          logDebug $ "Fees: " ++ show fees
+          logDebug $ "InputLovelace: " ++ show inputLovelace
+          logDebug $ "OutputLovelace: " ++ show outputLovelace
           pure $ outputLovelace + accLovelace >= inputLovelace
   let completeCheck = lovelaceCheck && filteredACCheck
   unless lovelaceCheck $
