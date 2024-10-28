@@ -457,23 +457,35 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
         utxosLovelaceAndFilteredValueAtAddr $ txBodyUTxOs txBody
       botAssets = valueAssets filteredACInput
       fees = txBodyFee txBody
-      nonAdaTokenArbitrage = map (\ac -> (ac, valueAssetClass filteredACOutput ac - valueAssetClass filteredACInput ac)) $ toList botAssets
-      filteredACCheck = all ((>= 0) . snd) nonAdaTokenArbitrage
+      nonAdaTokenArbitrage = M.fromList $ filter ((/= 0) . snd) $ map (\ac -> (ac, valueAssetClass filteredACOutput ac - valueAssetClass filteredACInput ac)) $ toList botAssets
+      filteredACCheck = all (> 0) $ M.elems nonAdaTokenArbitrage -- We already filtered for zero values.
   lovelaceCheck <-
     if all currencyIsLovelace oapFilter
       then pure (outputLovelace >= inputLovelace)
       else case mpp of
         Nothing -> pure $ inputLovelace - outputLovelace <= fees -- Should include flat taker fee here as well.
         Just pp -> do
-          accLovelace <-
+          let tokensWithInfos = M.restrictKeys assetInfos (M.keysSet nonAdaTokenArbitrage)
+          accLovelace <- do
+            priceInfos <- case pp of
+              MaestroPriceProvider mpp -> do
+                foldlM'
+                  ( \acc (ac, assetInfo) -> do
+                      res <- getLovelacePriceOfAssetMaestro mpp ac assetInfo
+                      pure $! M.insert ac res acc
+                  )
+                  (M.empty :: Map GYAssetClass (Either PricesProviderException Rational))
+                  $ M.toList tokensWithInfos
+              TapToolsPriceProvider tpp -> do
+                getLovelacePriceOfAssetsTapTools tpp tokensWithInfos
             foldlM'
               ( \accLovelace (ac, amt) -> do
-                  case M.lookup ac assetInfos of
-                    Nothing -> do
+                  if not (M.member ac assetInfos)
+                    then do
                       logWarn $ "AssetInfo not found for: " ++ show ac
                       pure accLovelace
-                    Just ai -> do
-                      lovelacePriceOfAssetE <- getLovelacePriceOfAsset pp ac ai
+                    else do
+                      let lovelacePriceOfAssetE = priceInfos M.! ac
                       case lovelacePriceOfAssetE of
                         Left e -> do
                           logErr $ "Failed to get lovelace price of asset: " ++ show ac ++ ", with error: " ++ show e
@@ -482,7 +494,7 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
                           pure $ accLovelace + floor (lovelacePriceOfAsset * fromIntegral amt) -- TODO: Unit test this part!
               )
               0
-              nonAdaTokenArbitrage
+              $ M.toList nonAdaTokenArbitrage
           pure $ outputLovelace + accLovelace >= inputLovelace
   let completeCheck = lovelaceCheck && filteredACCheck
   unless lovelaceCheck $
@@ -559,47 +571,6 @@ matchingsPerOrderAssetPair oaps = foldl' succOAP (M.fromList $ map (,0) oaps)
 runGYTxMonadNodeParallelWithStrategy :: GYCoinSelectionStrategy -> GYNetworkId -> GYProviders -> [GYAddress] -> GYAddress -> Maybe (GYTxOutRef, Bool) -> GYTxBuilderMonadIO [GYTxSkeleton v] -> IO GYTxBuildResult
 runGYTxMonadNodeParallelWithStrategy strat nid providers addrs change collateral act = runGYTxBuilderMonadIO nid providers addrs change collateral $ act >>= buildTxBodyParallelWithStrategy strat
 
-getLovelacePriceOfAsset :: PriceProvider -> GYAssetClass -> AssetInfo -> IO (Either PricesProviderException Rational)
-getLovelacePriceOfAsset _ GYLovelace _ = (pure . pure) 1
-getLovelacePriceOfAsset (MaestroPriceProvider MaestroPP {..}) _ac AssetInfo {..} = do
-  handle handleMaestroSourceFail $ do
-    let pairName = "ADA-" <> assetTicker
-        pair = Maestro.TaggedText pairName
-
-    ohlInfo <-
-      handleMaestroError (functionLocationIdent <> " - fetching price from pair") <=< try $
-        -- TODO: Should limit to 1?
-        Maestro.pricesFromDex mppEnv mppDex pair (Just mppResolution) Nothing Nothing Nothing (Just Maestro.Descending)
-
-    let info = head ohlInfo
-        adaPrecision :: Int = 6 -- We cast to @Int@ so as to handle overflows when performing subtraction later.
-        tokenPrecision :: Int = fromIntegral assetDecimals
-        precisionDiff = 10 ** fromIntegral (adaPrecision - tokenPrecision)
-
-        price = Maestro.ohlcCandleInfoCoinAClose info
-
-        adjustedPrice = price * precisionDiff
-
-    return . Right . toRational $ adjustedPrice
- where
-  functionLocationIdent = "getLovelacePriceOfAsset:Maestro"
-getLovelacePriceOfAsset (TapToolsPriceProvider TapToolsPP {..}) ac AssetInfo {..} = do
-  handle handleTapToolsSourceFail $ do
-    let unit = TapToolsUnit ac
-        adaPrecision :: Int = 6 -- We cast to @Int@ so as to handle overflows when performing subtraction later.
-        tokenPrecision :: Int = fromIntegral assetDecimals
-        precisionDiff = 10 ** fromIntegral (adaPrecision - tokenPrecision)
-
-    priceInfo <- handleTapToolsError (functionLocationIdent <> " - fetching price from unit(s)") <=< try $ tapToolsPrices ttppEnv [unit]
-
-    case M.lookup unit priceInfo of
-      Nothing -> throwIO $ TapToolsOtherError functionLocationIdent ("Price not found for given unit: " <> toUrlPiece unit)
-      Just price -> do
-        let adjustedPrice = price * precisionDiff
-        return . Right . toRational $ adjustedPrice
- where
-  functionLocationIdent = "getLovelacePriceOfAsset:TapTools"
-
 foldlM' :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m b
 foldlM' f = foldlM (\ !acc -> f acc)
 
@@ -629,15 +600,57 @@ throwMspvApiError locationInfo =
 handleMaestroError :: Text -> Either Maestro.MaestroError a -> IO a
 handleMaestroError locationInfo = either (throwMspvApiError locationInfo) pure
 
-throwTtpvApiError :: Text -> TapToolsException -> IO a
-throwTtpvApiError locationInfo =
-  throwIO . TapToolsApiError locationInfo
-
-handleTapToolsError :: Text -> Either TapToolsException a -> IO a
-handleTapToolsError locationInfo = either (throwTtpvApiError locationInfo) pure
-
 handleMaestroSourceFail :: MaestroPriceException -> IO (Either PricesProviderException a)
 handleMaestroSourceFail = pure . Left . PPMaestroErr
 
-handleTapToolsSourceFail :: TapToolsPriceException -> IO (Either PricesProviderException a)
-handleTapToolsSourceFail = pure . Left . PPTapToolsErr
+-- | Assumption: None of the tokens is ADA.
+getLovelacePriceOfAssetsTapTools :: TapToolsPP -> Map GYAssetClass AssetInfo -> IO (Map GYAssetClass (Either PricesProviderException Rational))
+getLovelacePriceOfAssetsTapTools (TapToolsPP {..}) assetInfos = do
+  let units :: [TapToolsUnit] = coerce $ M.keys assetInfos
+      adaPrecision :: Int = 6 -- We cast to @Int@ so as to handle overflows when performing subtraction later.
+  priceInfosE <- try $ tapToolsPrices ttppEnv units
+  case priceInfosE of
+    Left (e :: TapToolsException) ->
+      pure $ M.map (\_ -> Left (PPTapToolsErr $ TapToolsApiError functionLocationIdent e)) assetInfos
+    Right priceInfos ->
+      pure $
+        M.mapWithKey
+          ( \ac _ -> do
+              let unit :: TapToolsUnit = coerce ac
+              case M.lookup unit priceInfos of
+                Nothing -> Left $ PPTapToolsErr $ TapToolsOtherError functionLocationIdent ("Price not found for given unit: " <> toUrlPiece unit)
+                Just price -> do
+                  let AssetInfo {..} = assetInfos M.! ac
+                      tokenPrecision :: Int = fromIntegral assetDecimals
+                      precisionDiff = 10 ** fromIntegral (adaPrecision - tokenPrecision)
+                      adjustedPrice = price * precisionDiff
+                  Right . toRational $ adjustedPrice
+          )
+          assetInfos
+ where
+  functionLocationIdent = "getLovelacePriceOfAssetsTapTools"
+
+-- | Assumption: Provided token is not ADA.
+getLovelacePriceOfAssetMaestro :: MaestroPP -> GYAssetClass -> AssetInfo -> IO (Either PricesProviderException Rational)
+getLovelacePriceOfAssetMaestro MaestroPP {..} _ac AssetInfo {..} = do
+  handle handleMaestroSourceFail $ do
+    let pairName = "ADA-" <> assetTicker
+        pair = Maestro.TaggedText pairName
+
+    ohlInfo <-
+      handleMaestroError (functionLocationIdent <> " - fetching price from pair") <=< try $
+        -- TODO: Should limit to 1?
+        Maestro.pricesFromDex mppEnv mppDex pair (Just mppResolution) Nothing Nothing Nothing (Just Maestro.Descending)
+
+    let info = head ohlInfo
+        adaPrecision :: Int = 6 -- We cast to @Int@ so as to handle overflows when performing subtraction later.
+        tokenPrecision :: Int = fromIntegral assetDecimals
+        precisionDiff = 10 ** fromIntegral (adaPrecision - tokenPrecision)
+
+        price = Maestro.ohlcCandleInfoCoinAClose info
+
+        adjustedPrice = price * precisionDiff
+
+    return . Right . toRational $ adjustedPrice
+ where
+  functionLocationIdent = "getLovelacePriceOfAssetMaestro"
