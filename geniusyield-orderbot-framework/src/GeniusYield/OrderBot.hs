@@ -455,10 +455,11 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
         utxosLovelaceAndFilteredValueAtAddr inputs
       (outputLovelace, filteredACOutput) =
         utxosLovelaceAndFilteredValueAtAddr $ txBodyUTxOs txBody
-      botAssets = valueAssets filteredACInput
+      assetsToConsider = valueAssets filteredACInput <> valueAssets filteredACOutput
       fees = txBodyFee txBody
-      nonAdaTokenArbitrage = M.fromList $ filter ((/= 0) . snd) $ map (\ac -> (ac, valueAssetClass filteredACOutput ac - valueAssetClass filteredACInput ac)) $ toList botAssets
+      nonAdaTokenArbitrage = M.fromList $ filter ((/= 0) . snd) $ map (\ac -> (ac, valueAssetClass filteredACOutput ac - valueAssetClass filteredACInput ac)) $ toList assetsToConsider
       filteredACCheck = all (> 0) $ M.elems nonAdaTokenArbitrage -- Note that we have already filtered for zero values.
+  logDebug "Inside notLosingTokensCheck"
   lovelaceCheck <-
     if all currencyIsLovelace oapFilter
       then do
@@ -469,6 +470,8 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
           logDebug "No price provider found."
           pure $ inputLovelace - outputLovelace <= fees -- Ideally, we should be including flat taker fee here as well since matching algorithm is agnostic of current DEX requirement.
         Just pp -> do
+          logDebug $ "AssetInfos: " ++ show assetInfos
+          logDebug $ "nonAdaTokenArbitrage: " ++ show nonAdaTokenArbitrage
           let tokensWithInfos = M.restrictKeys assetInfos (M.keysSet nonAdaTokenArbitrage)
           logDebug $ "TokensWithInfos: " ++ show tokensWithInfos
           accLovelace <- do
@@ -497,7 +500,7 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
                           logErr $ "Failed to get lovelace price of asset: " ++ show ac ++ ", with error: " ++ show e
                           pure accLovelace
                         Right lovelacePriceOfAsset -> do
-                          pure $ accLovelace + floor (lovelacePriceOfAsset * fromIntegral amt) -- TODO: Unit test this part!
+                          pure $ accLovelace + floor (lovelacePriceOfAsset * fromIntegral amt)
               )
               0
               $ M.toList nonAdaTokenArbitrage
@@ -649,7 +652,7 @@ getLovelacePriceOfAssetMaestro MaestroPP {..} _ac AssetInfo {..} = do
 
     ohlInfo <-
       handleMaestroError (functionLocationIdent <> " - fetching price from pair") <=< try $
-        -- TODO: Should limit to 1?
+        -- NOTE: Should set limit parameter to 1?
         Maestro.pricesFromDex mppEnv mppDex pair (Just mppResolution) Nothing Nothing Nothing (Just Maestro.Descending)
 
     let info = head ohlInfo
