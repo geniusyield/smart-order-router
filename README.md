@@ -374,7 +374,7 @@ file. The complete bot configuration looks like this:
   writing lovelace or the empty string. The multi-asset order book is built using this list.
 - `lovelaceWarningThreshold`, denotes lovelace value. If bot's balance is below this threshold, log with warning severity is made.
 - `priceProvider` (optional) is used to configure price provider which is used to obtain ADA price for a token. Currently two price providers are supported.
-  - To use [Maestro's OHLCV](https://docs.gomaestro.org/cardano/dex-and-pair-ohlc) endpoint, example configuration is provided below, `resolution` & `dex` field correspond directly to underlying Maestro endpoint:
+  - To use [Maestro's OHLCV](https://docs.gomaestro.org/cardano/dex-and-pair-ohlc) endpoint, example configuration is provided below. `resolution` & `dex` field correspond directly to underlying Maestro endpoint:
     ```json
     "priceProvider": {
       "tag": "maestro",
