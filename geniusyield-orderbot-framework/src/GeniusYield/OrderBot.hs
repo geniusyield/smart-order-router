@@ -461,9 +461,13 @@ notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, 
       filteredACCheck = all (> 0) $ M.elems nonAdaTokenArbitrage -- Note that we have already filtered for zero values.
   lovelaceCheck <-
     if all currencyIsLovelace oapFilter
-      then pure (outputLovelace >= inputLovelace)
+      then do
+        logDebug "Currency of all order asset pairs is lovelace."
+        pure (outputLovelace >= inputLovelace)
       else case mpp of
-        Nothing -> pure $ inputLovelace - outputLovelace <= fees -- Ideally, we should be including flat taker fee here as well since matching algorithm is agnostic of current DEX requirement.
+        Nothing -> do
+          logDebug "No price provider found."
+          pure $ inputLovelace - outputLovelace <= fees -- Ideally, we should be including flat taker fee here as well since matching algorithm is agnostic of current DEX requirement.
         Just pp -> do
           let tokensWithInfos = M.restrictKeys assetInfos (M.keysSet nonAdaTokenArbitrage)
           logDebug $ "TokensWithInfos: " ++ show tokensWithInfos
