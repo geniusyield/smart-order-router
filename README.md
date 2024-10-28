@@ -12,6 +12,7 @@
 ## Table of contents
 
 - 🎓 [Crash Course](#crash-course-geniusyield-dex-orders-and-the-smart-order-routers)
+- 🔍 [How bot assesses profitability](#how-bot-assesses-profitability)
 - 🚀 [Building and running](#building-and-running-the-smart-order-router)
 - 🧠 [Strategies](#strategies)
 - 💰 [Yield Accelerator Rewards](#yield-accelerator-rewards)
@@ -137,20 +138,17 @@ Using the previous example we could have two cases:
 If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we can buy from the sell order,
 `20 ADA` using `8 GENS`, then using these `20 ADA` we can get `10 GENS` from the buy order, earning `2 GENS`.
 
-> [!IMPORTANT]
->
-> There is a check in the end which does the following before submitting any transaction:
->
-> * In case "currency" is set to ADA for all `scanTokens` then this check guarantees that bot doesn't lose any funds by submitting the built transaction.
-> * For other case, since arbitrage isn't guaranteed to be in ADA but as transaction fees must be paid in ADA, this check guarantees that bot doesn't lose any non-ADA token and doesn't lose any ADA besides transaction fees.
+## How bot assesses profitability?
+
+Our design aims to execute built transactions only if they are "profitable" but how do we define profitability? We use the following rules regarding it:
+* If currency of all the pairs (`scanTokens`) is set to ADA, then transaction is profitable if bot doesn't lose balance for any of it's tokens.
+* For other case, since arbitrage isn't guaranteed to be in ADA but as transaction fees must be paid in ADA, some ADA loss might be inevitable. Here we require that token balance for any non-ada token does not decrease and that _ADA equivalent_ for arbitraged non-ADA token (along with any arbitraged ADA) compensates loss of ADA due to fees.
+  * In case `tokenInfos` misses an entry for an arbitraged token or in case an error is encountered when obtaining price from provider, we make a log with high severity (warning in case of missed entry & error in case of remote price provider failure) and assume it's ADA equivalent value to be zero (to be on safe side) when determining above profitability check.
+  * Note that in case `priceProvider` field is not provided[^1] in bot's configuration, profitability check is slightly modified where we require that bot doesn't lose any ADA besides transaction fees (along with requiring that it doesn't lose any non-ADA token).
 
 ## Building and running the Smart Order Router
 
-> [!NOTE]
-> To run a Smart Order Router instance for the [public testnet](https://testnet.geniusyield.co/), please use the preprod testnet.
-
-
-## Running the SOR: System requirements
+### Running the SOR: System requirements
 
 Minimum System Requirements:
 - Memory: 500 MB
@@ -319,6 +317,8 @@ console, and some `Debug` level info into the `Debug.log` file.
            ]
 ```
 
+#### Bot configuration
+
 In addition, to configure the **bot**, it is necessary to edit the [bot-config.json](./config-files/bot-config.json)
 file. The complete bot configuration looks like this:
 
@@ -335,7 +335,24 @@ file. The complete bot configuration looks like this:
          "commodityAsset": "c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53",
          "currencyAsset": "lovelace"
       }
-   ]
+   ],
+   "lovelaceWarningThreshold": 5000000,
+   "priceProvider": {
+      "tag": "tapTools",
+      "contents": {
+         "apiKey": "YOUR_API_KEY"
+      }
+   },
+   "tokenInfos": {
+      "dda5fdb1002f7389b33e036b6afee82a8189becb6cba852e8b79b4fb.0014df1047454e53": {
+         "ticker": "GENS",
+         "decimals": 6
+      },
+      "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad.0014df105553444d": {
+         "ticker": "USDM",
+         "decimals": 6
+      }
+   }
 }
 ```
 - `signingKeyFP`, we need to specify the bot signing key, that must be placed
@@ -355,6 +372,32 @@ file. The complete bot configuration looks like this:
   will arbitrage the orders to get tokens of the `currencyAsset`. Each token must be written
   with the format policyId.hexTokenName. For convenience, scanning ADAs can be done by
   writing lovelace or the empty string. The multi-asset order book is built using this list.
+- `lovelaceWarningThreshold`, denotes lovelace value. If bot's balance is below this threshold, log with warning severity is made.
+- `priceProvider` (optional) is used to configure price provider which is used to obtain ADA price for a token. Currently two price providers are supported.
+  - To use [Maestro's OHLCV](https://docs.gomaestro.org/cardano/dex-and-pair-ohlc) endpoint, example configuration is provided below, `resolution` & `dex` field correspond directly to underlying Maestro endpoint:
+    ```json
+    "priceProvider": {
+      "tag": "maestro",
+      "contents": {
+        "apiKey": "YOUR_API_KEY",
+        "resolution": "15m",
+        "dex": "minswap"
+      }
+    }
+    ```
+  - To use [TapTools's prices](https://openapi.taptools.io/#tag/Market-Tokens/paths/~1token~1prices/post) endpoint, example configuration is provided below. Note that when using TapTools price provider, SOR does single request to obtain price information for multiple tokens when required as underlying endpoint supports price fetch for multiple assets in a single API call. Whereas for Maestro, request is made per individual token.
+    ```json
+    "priceProvider": {
+      "tag": "tapTools",
+      "contents": {
+        "apiKey": "YOUR_API_KEY"
+      }
+    }
+    ```
+- `tokenInfos` (optional) is used to provide token's registered off-chain metadata. Since prices provided by providers utilise "display" units which is independent of underlying blockchain ledger, we require information such as token's registered decimal places to obtain lovelace value per token's indivisible unit.
+
+> [!NOTE]
+> See [_How bot assesses profitability_](#how-bot-assesses-profitability) section on how fields of `tokenInfos` & `priceProvider` are used to assess profitability.
 
 #### Creating Signing Key
 
@@ -583,3 +626,5 @@ Cloud service providers like AWS, Google Cloud Platform or Azure offer monitorin
 ## License
 
 [Apache-2.0](./LICENSE) © [GYELD GMBH](https://www.geniusyield.co).
+
+[^1]: See ["Bot configuration"](#bot-configuration) section for elaboration on these fields.
