@@ -29,6 +29,8 @@ import Data.Aeson (
 import qualified Data.Aeson.Types as Aeson
 import Data.Bifunctor (first)
 import Data.List (nub)
+import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
 import Data.Random (sample, shuffle)
 import Data.String (IsString (..))
 import qualified Data.Vector as V
@@ -83,6 +85,9 @@ data OrderBotConfig
   , botCLovelaceWarningThreshold :: Maybe Natural
   -- ^ If bot's lovelace balance falls below this value, bot would log warning logs.
   , botCPriceProvider :: Maybe PriceProviderConfig
+  -- ^ Price provider used to get ADA value of a token
+  , botCTokenInfos :: Maybe (Map GYAssetClass AssetInfo)
+  -- ^ Token registry information. Since prices given by provider are usually in display units, we need information such as registered decimal places to know lovelace value per indivisible token unit.
   }
   deriving stock (Show, Generic)
 
@@ -100,6 +105,7 @@ instance FromEnv OrderBotConfig where
       -- Apparently, there is no `Var` instance for `Natural` in `System.Envy`.
       <*> (fmap (fromIntegral @Word64 @Natural) <$> envMaybe "BOTC_LOVELACE_WARNING_THRESHOLD")
       <*> (fmap forceFromJson <$> envMaybe "BOTC_PRICE_PROVIDER")
+      <*> (fmap forceFromJson <$> envMaybe "BOTC_TOKEN_INFOS")
    where
     parseCBORSKey :: String -> GYPaymentSigningKey
     parseCBORSKey s =
@@ -135,6 +141,7 @@ instance FromJSON OrderBotConfig where
       <*> obj .: "randomizeMatchesFound"
       <*> obj .:? "lovelaceWarningThreshold"
       <*> obj .:? "priceProvider"
+      <*> obj .:? "tokenInfos"
   parseJSON _ = fail "Expecting object value"
 
 parseScanTokenPairs :: Value -> Aeson.Parser [OrderAssetPair]
@@ -171,6 +178,7 @@ buildOrderBot OrderBotConfig {..} = do
       , botTakeMatches = takeMatches botCRandomizeMatchesFound maxTxPerIter
       , botLovelaceWarningThreshold = botCLovelaceWarningThreshold
       , botPriceProvider = botCPriceProvider
+      , botTokenInfos = fromMaybe mempty botCTokenInfos
       }
  where
   buildCollateral :: Maybe (GYTxOutRef, Bool)

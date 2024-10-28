@@ -186,6 +186,7 @@ library
     geniusyield-orderbot-framework:orderbook,
     geniusyield-orderbot-framework:strategies,
     geniusyield-server-lib,
+    http-api-data,
     maestro-sdk,
     vector,
 
