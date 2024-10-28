@@ -143,8 +143,8 @@ If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we 
 Our design aims to execute built transactions only if they are "profitable" but how do we define profitability? We use the following rules regarding it:
 * If currency of all the pairs (`scanTokens`) is set to ADA, then transaction is profitable if bot doesn't lose balance for any of it's tokens.
 * For other case, since arbitrage isn't guaranteed to be in ADA but as transaction fees must be paid in ADA, some ADA loss might be inevitable. Here we require that token balance for any non-ada token does not decrease and that _ADA equivalent_ for arbitraged non-ADA token (along with any arbitraged ADA) compensates loss of ADA due to fees.
-  * In case `tokenInfos` misses an entry for an arbitraged token or in case an error is encountered when obtaining price from provider, we make a log with high severity (warning in case of missed entry & error in case of remote price provider failure) and assume it's ADA equivalent value to be zero (to be on safe side) when determining above profitability check.
-  * Note that in case `priceProvider` field is not provided[^1] in bot's configuration, profitability check is slightly modified where we require that bot doesn't lose any ADA besides transaction fees (along with requiring that it doesn't lose any non-ADA token).
+  * In case `tokenInfos`[^1] misses an entry for an arbitraged token or in case an error is encountered when obtaining price from provider, we make a log with high severity (warning in case of missed entry & error in case of remote price provider failure) and assume it's ADA equivalent value to be zero (to be on safe side) when determining above profitability check.
+  * Note that in case `priceProvider` field is not provided in bot's configuration, profitability check is slightly modified where we require that bot doesn't lose any ADA besides transaction fees (along with requiring that it doesn't lose any non-ADA token).
 
 ## Building and running the Smart Order Router
 
