@@ -18,5 +18,22 @@
          "commodityAsset": "c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e.7447454e53",
          "currencyAsset": "lovelace"
       }
-   ]
+   ],
+   "lovelaceWarningThreshold": 5000000,
+   "priceProvider": {
+      "tag": "tapTools",
+      "contents": {
+         "apiKey": "YOUR_API_KEY"
+      }
+   },
+   "tokenInfos": {
+      "dda5fdb1002f7389b33e036b6afee82a8189becb6cba852e8b79b4fb.0014df1047454e53": {
+         "ticker": "GENS",
+         "decimals": 6
+      },
+      "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad.0014df105553444d": {
+         "ticker": "USDM",
+         "decimals": 6
+      }
+   }
 }

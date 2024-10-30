@@ -1,5 +1,10 @@
 # Revision history for geniusyield-orderbot-framework
 
+## 0.5.1
+
+* Additional configuration parameter, `lovelaceWarningThreshold` which denotes lovelace value. If bot's balance is below this threshold, log with warning severity is made.
+* Support for price providers to assess profitability, see details in updated README file.
+
 ## 0.5.0
 
 Adds strategy signature, utilities to different orderbook, etc. signatures and more modules related to order bot configuration and command line parsing.

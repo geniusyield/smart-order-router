@@ -6,6 +6,8 @@ Maintainer  : support@geniusyield.co
 Stability   : develop
 -}
 module GeniusYield.OrderBot (
+  AssetInfo (..),
+  PriceProviderConfig (..),
   OrderBot (..),
   ExecutionStrategy (..),
   runOrderBot,
@@ -15,32 +17,44 @@ import Control.Arrow (second, (&&&))
 import Control.Concurrent (threadDelay)
 import Control.Exception (
   AsyncException (UserInterrupt),
+  Exception,
   SomeException,
   bracket,
+  displayException,
   fromException,
   handle,
+  throwIO,
+  try,
  )
 import Control.Monad (
   filterM,
   forever,
   unless,
+  when,
+  (<=<),
  )
 import Control.Monad.Reader (runReaderT)
-import Data.Aeson (ToJSON, encode)
+import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy as BL
-import Data.Foldable (foldl', toList)
+import Data.Foldable (foldl', foldlM, toList)
 import Data.Functor ((<&>))
 import Data.List (find)
 import qualified Data.List.NonEmpty as NE (toList)
-import qualified Data.Map as M
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 import Data.Maybe (mapMaybe)
+import Data.Text (Text)
 import qualified Data.Text as Txt
+import Data.Word (Word64)
+import Deriving.Aeson
 import GeniusYield.Api.Dex.Constants (DEXInfo (..))
 import GeniusYield.GYConfig (
+  Confidential (..),
   GYCoreConfig (cfgNetworkId),
   withCfgProviders,
  )
+import GeniusYield.Imports (coerce)
 import GeniusYield.OrderBot.DataSource (closeDB, connectDB)
 import GeniusYield.OrderBot.MatchingStrategy (
   IndependentStrategy,
@@ -63,6 +77,9 @@ import GeniusYield.OrderBot.Types (
   assetInfo,
  )
 import GeniusYield.Providers.Common (SubmitTxException)
+import GeniusYield.Providers.Maestro (networkIdToMaestroEnv)
+import GeniusYield.Server.Ctx (TapToolsEnv (..))
+import GeniusYield.Server.Dex.HistoricalPrices.TapTools.Client hiding (handleTapToolsError)
 import GeniusYield.Transaction (GYCoinSelectionStrategy (GYLegacy))
 import GeniusYield.TxBuilder (
   GYTxBuildResult (..),
@@ -71,11 +88,80 @@ import GeniusYield.TxBuilder (
   buildTxBodyParallelWithStrategy,
   runGYTxBuilderMonadIO,
   runGYTxQueryMonadIO,
+  utxosAtAddresses,
   utxosAtTxOutRefs,
  )
 import GeniusYield.TxBuilder.Errors (GYTxMonadException)
 import GeniusYield.Types
+import qualified Maestro.Client.V1 as Maestro
+import qualified Maestro.Types.V1 as Maestro
 import System.Exit (exitSuccess)
+import Web.HttpApiData (ToHttpApiData (..))
+
+data AssetInfo = AssetInfo
+  { assetTicker :: !Text
+  , assetDecimals :: !Word64
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "asset", Maestro.LowerFirst]] AssetInfo
+
+data MaestroConfig = MaestroConfig
+  { mcApiKey :: !(Confidential Text)
+  , mcResolution :: !Maestro.Resolution
+  , mcDex :: !Maestro.Dex
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "mc", Maestro.LowerFirst]] MaestroConfig
+
+newtype TapToolsConfig = TapToolsConfig
+  { ttcApiKey :: Confidential Text
+  }
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[FieldLabelModifier '[StripPrefix "ttc", Maestro.LowerFirst]] TapToolsConfig
+
+-- | Price provider to get ADA price of a token.
+data PriceProviderConfig
+  = TapToolsPriceProviderConfig !TapToolsConfig
+  | MaestroPriceProviderConfig !MaestroConfig
+  deriving stock (Show, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[ConstructorTagModifier '[Rename "TapToolsPriceProviderConfig" "tapTools", Rename "MaestroPriceProviderConfig" "maestro"]] PriceProviderConfig
+
+data MaestroPP = MaestroPP
+  { mppEnv :: !(Maestro.MaestroEnv 'Maestro.V1)
+  , mppResolution :: !Maestro.Resolution
+  , mppDex :: !Maestro.Dex
+  }
+
+newtype TapToolsPP = TapToolsPP
+  { ttppEnv :: TapToolsEnv
+  }
+
+data PriceProvider
+  = TapToolsPriceProvider !TapToolsPP
+  | MaestroPriceProvider !MaestroPP
+
+buildTapToolsPP :: TapToolsConfig -> IO TapToolsPP
+buildTapToolsPP TapToolsConfig {..} = do
+  tcenv <- tapToolsClientEnv
+  let tenv = TapToolsEnv tcenv (coerce ttcApiKey)
+  pure
+    TapToolsPP
+      { ttppEnv = tenv
+      }
+
+buildMaestroPP :: MaestroConfig -> IO MaestroPP
+buildMaestroPP MaestroConfig {..} = do
+  env <- networkIdToMaestroEnv (coerce mcApiKey) GYMainnet
+  pure
+    MaestroPP
+      { mppEnv = env
+      , mppResolution = mcResolution
+      , mppDex = mcDex
+      }
+
+buildPP :: PriceProviderConfig -> IO PriceProvider
+buildPP (TapToolsPriceProviderConfig ttpc) = TapToolsPriceProvider <$> buildTapToolsPP ttpc
+buildPP (MaestroPriceProviderConfig mpc) = MaestroPriceProvider <$> buildMaestroPP mpc
 
 -- | The order bot is product type between bot info and "execution strategies".
 data OrderBot = OrderBot
@@ -101,6 +187,11 @@ data OrderBot = OrderBot
   , botTakeMatches :: [MatchResult] -> IO [MatchResult]
   -- ^ How and how many matching results do the bot takes to build, sign and
   --          submit every iteration.
+  , botLovelaceWarningThreshold :: Maybe Natural
+  -- ^ See 'botCLovelaceWarningThreshold'.
+  , botPriceProvider :: Maybe PriceProviderConfig
+  -- ^ The price provider for the bot, used in case arbitrage is in non-ada token & we need to decide if the arbitraged tokens compensate the ada lost due to transaction fees.
+  , botTokenInfos :: Map GYAssetClass AssetInfo
   }
 
 {- | Currently, we only have the parallel execution strategy: @MultiAssetTraverse@,
@@ -108,6 +199,9 @@ data OrderBot = OrderBot
      is processed independently.
 -}
 newtype ExecutionStrategy = MultiAssetTraverse IndependentStrategy
+
+sorNS :: GYLogNamespace
+sorNS = "SOR"
 
 runOrderBot ::
   -- | Path to the config file for the GY framework.
@@ -128,16 +222,19 @@ runOrderBot
     , botAssetPairFilter
     , botRescanDelay
     , botTakeMatches
+    , botLovelaceWarningThreshold
+    , botPriceProvider
+    , botTokenInfos
     } = do
     withCfgProviders cfg "" $ \providers -> do
-      let logInfo = gyLogInfo providers "SOR"
-          logDebug = gyLogDebug providers "SOR"
+      let logInfo = gyLogInfo providers sorNS
+          logDebug = gyLogDebug providers sorNS
+          logWarn = gyLogWarning providers sorNS
 
           netId = cfgNetworkId cfg
           botPkh = paymentKeyHash $ paymentVerificationKey botSkey
           botChangeAddr = addressFromCredential netId (GYPaymentCredentialByKey botPkh) (stakeAddressToCredential . stakeAddressFromBech32 <$> botStakeAddress)
           botAddrs = [botChangeAddr]
-
       logInfo $
         unlines
           [ ""
@@ -146,16 +243,34 @@ runOrderBot
           , "  Wallet Addresses: " ++ show (Txt.unpack . addressToText <$> botAddrs)
           , "  Change Address: " ++ (Txt.unpack . addressToText $ botChangeAddr)
           , "  Collateral: " ++ show botCollateral
+          , "  Lovelace balance warning threshold: " ++ show botLovelaceWarningThreshold
           , "  Scan delay (µs): " ++ show botRescanDelay
+          , "  Bot price configuration: " ++ show botPriceProvider
+          , "  Bot token infos: " ++ show botTokenInfos
           , "  Token Pairs to scan:"
           , unlines (map (("\t - " ++) . show) botAssetPairFilter)
           , ""
           ]
-
+      mpp <- maybe (pure Nothing) (fmap Just . buildPP) botPriceProvider
       bracket (connectDB netId providers) closeDB $ \conn -> forever $
         handle (handleAnyException providers) $ do
           logInfo "Rescanning for orders..."
-
+          botUtxos <- runGYTxQueryMonadIO netId providers $ utxosAtAddresses botAddrs
+          let botBalance = foldMapUTxOs utxoValue botUtxos
+              botLovelaceBalance = valueAssetClass botBalance GYLovelace
+          logInfo $
+            unwords
+              [ "Bot balance:"
+              , show botBalance
+              ]
+          when (botLovelaceBalance < maybe 0 fromIntegral botLovelaceWarningThreshold) $
+            logWarn $
+              unwords
+                [ "Bot lovelace balance is below the warning threshold. Threshold:"
+                , show botLovelaceWarningThreshold
+                , ", bot lovelace balance:"
+                , show botLovelaceBalance
+                ]
           -- First we populate the multi asset orderbook, using the provided
           -- @populateOrderBook@.
           book <- populateOrderBook conn di botAssetPairFilter
@@ -217,7 +332,7 @@ runOrderBot
             -- We filter the txs that are not losing tokens
             profitableTxs <-
               filterM
-                (notLosingTokensCheck netId providers botAddrs botAssetPairFilter)
+                (notLosingTokensCheck netId providers botAddrs botAssetPairFilter mpp botTokenInfos)
                 txs
 
             logInfo $
@@ -243,7 +358,7 @@ runOrderBot
     handleAnyException _ (fromException -> Just UserInterrupt) =
       putStrLn "Gracefully stopping..." >> exitSuccess
     handleAnyException providers err =
-      let logErr = gyLogError providers "SOR"
+      let logErr = gyLogError providers sorNS
        in logErr (show err) >> threadDelay botRescanDelay
 
 signAndSubmitTx :: GYTxBody -> GYProviders -> GYPaymentSigningKey -> IO ()
@@ -254,9 +369,9 @@ signAndSubmitTx txBody providers botSkey = handle handlerSubmit $ do
   logInfo $ unwords ["Submitted order matching transaction with id:", show tid]
  where
   logInfo, logDebug, logWarn :: String -> IO ()
-  logInfo = gyLogInfo providers "SOR"
-  logDebug = gyLogDebug providers "SOR"
-  logWarn = gyLogWarning providers "SOR"
+  logInfo = gyLogInfo providers sorNS
+  logDebug = gyLogDebug providers sorNS
+  logWarn = gyLogWarning providers sorNS
 
   handlerSubmit :: SubmitTxException -> IO ()
   handlerSubmit ex = logWarn $ unwords ["SubmitTxException:", show ex]
@@ -301,7 +416,7 @@ buildTransactions
       GYTxBuildNoInputs -> logWarn "No Inputs" >> return []
    where
     logWarn :: String -> IO ()
-    logWarn = gyLogWarning providers "SOR"
+    logWarn = gyLogWarning providers sorNS
 
     findBody :: [GYTxBody] -> MatchResult -> Maybe (GYTxBody, MatchResult)
     findBody bs mr =
@@ -323,11 +438,14 @@ notLosingTokensCheck ::
   GYProviders ->
   [GYAddress] ->
   [OrderAssetPair] ->
+  Maybe PriceProvider ->
+  Map GYAssetClass AssetInfo ->
   (GYTxBody, MatchResult) ->
   IO Bool
-notLosingTokensCheck netId providers botAddrs oapFilter (txBody, matchesToExecute) = do
-  let logDebug = gyLogDebug providers "SOR"
-      logWarn = gyLogWarning providers "SOR"
+notLosingTokensCheck netId providers botAddrs oapFilter mpp assetInfos (txBody, matchesToExecute) = do
+  let logDebug = gyLogDebug providers sorNS
+      logWarn = gyLogWarning providers sorNS
+      logErr = gyLogError providers sorNS
       matchesRefs = map matchExecutionInfoUtxoRef matchesToExecute
       botInputs = filter (`notElem` matchesRefs) $ txBodyTxIns txBody
 
@@ -337,21 +455,61 @@ notLosingTokensCheck netId providers botAddrs oapFilter (txBody, matchesToExecut
         utxosLovelaceAndFilteredValueAtAddr inputs
       (outputLovelace, filteredACOutput) =
         utxosLovelaceAndFilteredValueAtAddr $ txBodyUTxOs txBody
-
+      assetsToConsider = valueAssets filteredACInput <> valueAssets filteredACOutput
       fees = txBodyFee txBody
-      lovelaceCheck = if all currencyIsLovelace oapFilter then outputLovelace >= inputLovelace else inputLovelace - outputLovelace <= fees
-
-      filteredACCheck =
-        all
-          ( \ac ->
-              valueAssetClass filteredACInput ac
-                <= valueAssetClass filteredACOutput ac
-          )
-          $ toList
-          $ valueAssets filteredACInput
-
-      completeCheck = lovelaceCheck && filteredACCheck
-
+      nonAdaTokenArbitrage = M.fromList $ filter ((/= 0) . snd) $ map (\ac -> (ac, valueAssetClass filteredACOutput ac - valueAssetClass filteredACInput ac)) $ toList assetsToConsider
+      filteredACCheck = all (> 0) $ M.elems nonAdaTokenArbitrage -- Note that we have already filtered for zero values.
+  logDebug "Inside notLosingTokensCheck"
+  lovelaceCheck <-
+    if all currencyIsLovelace oapFilter
+      then do
+        logDebug "Currency of all order asset pairs is lovelace."
+        pure (outputLovelace >= inputLovelace)
+      else case mpp of
+        Nothing -> do
+          logDebug "No price provider found."
+          pure $ inputLovelace - outputLovelace <= fees -- Ideally, we should be including flat taker fee here as well since matching algorithm is agnostic of current DEX requirement.
+        Just pp -> do
+          logDebug $ "AssetInfos: " ++ show assetInfos
+          logDebug $ "nonAdaTokenArbitrage: " ++ show nonAdaTokenArbitrage
+          let tokensWithInfos = M.restrictKeys assetInfos (M.keysSet nonAdaTokenArbitrage)
+          logDebug $ "TokensWithInfos: " ++ show tokensWithInfos
+          accLovelace <- do
+            priceInfos <- case pp of
+              MaestroPriceProvider mpp -> do
+                foldlM'
+                  ( \acc (ac, assetInfo) -> do
+                      res <- getLovelacePriceOfAssetMaestro mpp ac assetInfo
+                      pure $! M.insert ac res acc
+                  )
+                  (M.empty :: Map GYAssetClass (Either PricesProviderException Rational))
+                  $ M.toList tokensWithInfos
+              TapToolsPriceProvider tpp -> do
+                getLovelacePriceOfAssetsTapTools tpp tokensWithInfos
+            logDebug $ "PriceInfos: " ++ show priceInfos
+            foldlM'
+              ( \accLovelace (ac, amt) -> do
+                  if not (M.member ac assetInfos)
+                    then do
+                      logWarn $ "AssetInfo not found for: " ++ show ac
+                      pure accLovelace
+                    else do
+                      let lovelacePriceOfAssetE = priceInfos M.! ac
+                      case lovelacePriceOfAssetE of
+                        Left e -> do
+                          logErr $ "Failed to get lovelace price of asset: " ++ show ac ++ ", with error: " ++ show e
+                          pure accLovelace
+                        Right lovelacePriceOfAsset -> do
+                          pure $ accLovelace + floor (lovelacePriceOfAsset * fromIntegral amt)
+              )
+              0
+              $ M.toList nonAdaTokenArbitrage
+          logDebug $ "AccLovelace: " ++ show accLovelace
+          logDebug $ "Fees: " ++ show fees
+          logDebug $ "InputLovelace: " ++ show inputLovelace
+          logDebug $ "OutputLovelace: " ++ show outputLovelace
+          pure $ outputLovelace + accLovelace >= inputLovelace
+  let completeCheck = lovelaceCheck && filteredACCheck
   unless lovelaceCheck $
     logWarn $
       unwords
@@ -416,12 +574,96 @@ totalSellOrders = foldrOrders (const (+ 1)) 0 . sellOrders
 totalBuyOrders :: OrderBook -> Int
 totalBuyOrders = foldrOrders (const (+ 1)) 0 . buyOrders
 
-matchingsPerOrderAssetPair :: [OrderAssetPair] -> [MatchResult] -> M.Map OrderAssetPair Int
+matchingsPerOrderAssetPair :: [OrderAssetPair] -> [MatchResult] -> Map OrderAssetPair Int
 matchingsPerOrderAssetPair oaps = foldl' succOAP (M.fromList $ map (,0) oaps)
  where
-  succOAP :: M.Map OrderAssetPair Int -> MatchResult -> M.Map OrderAssetPair Int
+  succOAP :: Map OrderAssetPair Int -> MatchResult -> Map OrderAssetPair Int
   succOAP m (OrderExecutionInfo _ oi : _) = M.insertWith (+) (assetInfo oi) 1 m
   succOAP m _ = m
 
 runGYTxMonadNodeParallelWithStrategy :: GYCoinSelectionStrategy -> GYNetworkId -> GYProviders -> [GYAddress] -> GYAddress -> Maybe (GYTxOutRef, Bool) -> GYTxBuilderMonadIO [GYTxSkeleton v] -> IO GYTxBuildResult
 runGYTxMonadNodeParallelWithStrategy strat nid providers addrs change collateral act = runGYTxBuilderMonadIO nid providers addrs change collateral $ act >>= buildTxBodyParallelWithStrategy strat
+
+foldlM' :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m b
+foldlM' f = foldlM (\ !acc -> f acc)
+
+data MaestroPriceException = MaestroApiError !Text !Maestro.MaestroError
+  deriving stock Show
+  deriving anyclass Exception
+
+data TapToolsPriceException
+  = TapToolsApiError !Text !TapToolsException
+  | TapToolsOtherError !Text !Text
+  deriving stock (Eq, Show)
+  deriving anyclass Exception
+
+data PricesProviderException
+  = PPMaestroErr MaestroPriceException
+  | PPTapToolsErr TapToolsPriceException
+  deriving stock Show
+
+instance Exception PricesProviderException where
+  displayException (PPMaestroErr err) = "Maestro fail: " ++ displayException err
+  displayException (PPTapToolsErr err) = "TapTools fail: " ++ displayException err
+
+throwMspvApiError :: Text -> Maestro.MaestroError -> IO a
+throwMspvApiError locationInfo =
+  throwIO . MaestroApiError locationInfo
+
+handleMaestroError :: Text -> Either Maestro.MaestroError a -> IO a
+handleMaestroError locationInfo = either (throwMspvApiError locationInfo) pure
+
+handleMaestroSourceFail :: MaestroPriceException -> IO (Either PricesProviderException a)
+handleMaestroSourceFail = pure . Left . PPMaestroErr
+
+-- | Assumption: None of the tokens is ADA.
+getLovelacePriceOfAssetsTapTools :: TapToolsPP -> Map GYAssetClass AssetInfo -> IO (Map GYAssetClass (Either PricesProviderException Rational))
+getLovelacePriceOfAssetsTapTools (TapToolsPP {..}) assetInfos = do
+  let units :: [TapToolsUnit] = coerce $ M.keys assetInfos
+      adaPrecision :: Int = 6 -- We cast to @Int@ so as to handle overflows when performing subtraction later.
+  priceInfosE <- try $ tapToolsPrices ttppEnv units
+  case priceInfosE of
+    Left (e :: TapToolsException) ->
+      pure $ M.map (\_ -> Left (PPTapToolsErr $ TapToolsApiError functionLocationIdent e)) assetInfos
+    Right priceInfos ->
+      pure $
+        M.mapWithKey
+          ( \ac _ -> do
+              let unit :: TapToolsUnit = coerce ac
+              case M.lookup unit priceInfos of
+                Nothing -> Left $ PPTapToolsErr $ TapToolsOtherError functionLocationIdent ("Price not found for given unit: " <> toUrlPiece unit)
+                Just price -> do
+                  let AssetInfo {..} = assetInfos M.! ac
+                      tokenPrecision :: Int = fromIntegral assetDecimals
+                      precisionDiff = 10 ** fromIntegral (adaPrecision - tokenPrecision)
+                      adjustedPrice = price * precisionDiff
+                  Right . toRational $ adjustedPrice
+          )
+          assetInfos
+ where
+  functionLocationIdent = "getLovelacePriceOfAssetsTapTools"
+
+-- | Assumption: Provided token is not ADA.
+getLovelacePriceOfAssetMaestro :: MaestroPP -> GYAssetClass -> AssetInfo -> IO (Either PricesProviderException Rational)
+getLovelacePriceOfAssetMaestro MaestroPP {..} _ac AssetInfo {..} = do
+  handle handleMaestroSourceFail $ do
+    let pairName = "ADA-" <> assetTicker
+        pair = Maestro.TaggedText pairName
+
+    ohlInfo <-
+      handleMaestroError (functionLocationIdent <> " - fetching price from pair") <=< try $
+        -- NOTE: Should set limit parameter to 1?
+        Maestro.pricesFromDex mppEnv mppDex pair (Just mppResolution) Nothing Nothing Nothing (Just Maestro.Descending)
+
+    let info = head ohlInfo
+        adaPrecision :: Int = 6 -- We cast to @Int@ so as to handle overflows when performing subtraction later.
+        tokenPrecision :: Int = fromIntegral assetDecimals
+        precisionDiff = 10 ** fromIntegral (adaPrecision - tokenPrecision)
+
+        price = Maestro.ohlcCandleInfoCoinAClose info
+
+        adjustedPrice = price * precisionDiff
+
+    return . Right . toRational $ adjustedPrice
+ where
+  functionLocationIdent = "getLovelacePriceOfAssetMaestro"

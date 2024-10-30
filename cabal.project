@@ -38,10 +38,11 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/geniusyield/dex-contracts-api
-  tag: v0.11.0
-  --sha256: sha256-fV6jQVxoPfv1DdssmuHDmyvKcFpFCReiSeZ3n76zC9M=
+  tag: b6ab4d8d722d22c3fc9eae9c8689de00ba8d37c2
   subdir:
     geniusyield-dex-api
+    geniusyield-server-lib
+    geniusyield-orderbot-lib
     geniusyield-onchain/geniusyield-common
 
 -------- Begin contents from @atlas@'s @cabal.project@ file. --------
