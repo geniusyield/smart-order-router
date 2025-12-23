@@ -8,14 +8,16 @@ Stability   : develop
 module GeniusYield.OrderBot.Run (run) where
 
 import Control.Exception (throwIO)
-import GeniusYield.Api.Dex.Constants (
+import GeniusYield.Api.DEX.Constants (
   dexInfoDefaultMainnet,
   dexInfoDefaultPreprod,
  )
 import GeniusYield.GYConfig
 import GeniusYield.OrderBot (runOrderBot)
+-- import GeniusYield.OrderBot.Oracle (getOracleCertificate)
 import GeniusYield.OrderBot.OrderBotConfig (buildOrderBot, readBotConfig)
 import GeniusYield.Types (GYNetworkId (..))
+-- import GeniusYield.Types.Value (GYAssetClass (..))
 import System.Environment (getArgs)
 
 parseArgs :: IO (String, FilePath, Maybe FilePath)
@@ -43,12 +45,15 @@ run = do
   (action, pConfFile, obConfFile) <- parseArgs
   obc <- readBotConfig obConfFile
   cfg <- coreConfigIO pConfFile
-  di <-
+  -- gycs   <- readCompiledScripts
+  dexinfo <-
     case cfgNetworkId cfg of
-      GYTestnetPreprod -> pure dexInfoDefaultPreprod
-      GYMainnet -> pure dexInfoDefaultMainnet
+      GYTestnetPreprod -> dexInfoDefaultPreprod
+      GYMainnet -> dexInfoDefaultMainnet
       _ -> throwIO $ userError "Only Preprod and Mainnet are supported."
   ob <- buildOrderBot obc
+  -- x <- getOracleCertificate (GYToken "c6e65ba7878b2f8ea0ad39287d3e2fd256dc5c4160fc19bdf4c4d87e" "7447454e53", GYLovelace)
+  -- print x
   case action of
-    "run" -> runOrderBot cfg di ob
+    "run" -> runOrderBot cfg dexinfo ob
     _ -> throwIO . userError $ unwords ["Action: ", show action, " not supported."]

@@ -65,7 +65,7 @@ import           GeniusYield.OrderBot.Types      ( OrderAssetPair(..)
                                                  )
 import           GeniusYield.OrderBot.DataSource ( Connection )
 
-import           GeniusYield.Api.Dex.Constants    (DEXInfo)
+import           GeniusYield.Api.DEX.Constants    (DEXInfo)
 
 -------------------------------------------------------------------------------
 -- Core Order book types

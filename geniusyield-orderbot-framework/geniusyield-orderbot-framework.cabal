@@ -34,6 +34,7 @@ common common-deps
     base,
     bytestring,
     containers,
+    pretty-simple,
     mtl,
     mwc-random,
     random,
@@ -109,12 +110,15 @@ library common
   visibility: public
   hs-source-dirs: lib-common
   build-depends:
+    base16-bytestring,
     cardano-api,
     geniusyield-dex-api,
     postgresql-simple,
     postgresql-simple-url,
+    req
 
   exposed-modules:
+    GeniusYield.OrderBot.Oracle
     GeniusYield.OrderBot.Types
 
   ghc-options:
@@ -185,8 +189,6 @@ library
     geniusyield-orderbot-framework:datasource,
     geniusyield-orderbot-framework:orderbook,
     geniusyield-orderbot-framework:strategies,
-    geniusyield-server-lib,
-    http-api-data,
     maestro-sdk,
     vector,
 

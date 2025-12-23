@@ -16,42 +16,64 @@ module GeniusYield.OrderBot.MatchingStrategy (
   matchExecutionInfoUtxoRef,
 ) where
 
+import Data.Either (lefts, rights)
 import Data.Maybe (fromJust)
-import GeniusYield.Api.Dex.PartialOrder (
+import Data.Ratio (denominator, numerator, (%))
+import GeniusYield.Api.DEX.PartialOrder (
   PORefs,
-  PartialOrderInfo (poiOfferedAmount),
-  fillMultiplePartialOrders',
+  PartialOrderInfo (..),
  )
-import GeniusYield.Api.Dex.Types (GYDexApiMonad)
+import GeniusYield.Api.DEX.TwoWayOrder (TWFillSpec (..), TwoWayOrderInfo (..), fillTwoWayAndLegacyPartialOrders)
+import GeniusYield.Api.DEX.TwoWayOrderConfig (RefTWOCD (..), TWORef (..))
+import GeniusYield.Api.Types (GYApiMonad)
 import GeniusYield.OrderBot.Strategies (
   IndependentStrategy,
   MatchResult,
  )
 import GeniusYield.OrderBot.Types
 import GeniusYield.TxBuilder (GYTxSkeleton)
-import GeniusYield.Types.PlutusVersion (PlutusVersion (PlutusV2))
+import GeniusYield.TxBuilder.Class (GYTxQueryMonad, GYTxUserQueryMonad)
+import GeniusYield.Types (rationalToGHC)
+import GeniusYield.Types.Address (GYAddress)
+import GeniusYield.Types.PlutusVersion (PlutusVersion (PlutusV3))
 import GeniusYield.Types.TxOutRef (GYTxOutRef)
 
 executionSkeleton ::
-  GYDexApiMonad m a =>
-  PORefs ->
+  (GYApiMonad m, GYTxQueryMonad m, GYTxUserQueryMonad m) =>
+  (TWORef, PORefs) ->
+  GYAddress ->
+  RefTWOCD ->
   MatchResult ->
-  m (GYTxSkeleton 'PlutusV2)
-executionSkeleton pors mr = fillMultiplePartialOrders' pors (map f mr) Nothing mempty
+  m (GYTxSkeleton 'PlutusV3)
+executionSkeleton (twor, pors) recpAddr refTwo mr = do
+  fillTwoWayAndLegacyPartialOrders twor tspecs refTwo pors pspecs Nothing
  where
-  f (OrderExecutionInfo ft o) =
-    let oi = fromJust $ mPoi o -- It's always under `Just` constructor in our code, but we aren't able to get rid of `Maybe` type for now since that would require significant changes in the test-suite.
-     in ( oi
-        , case ft of
-            CompleteFill -> poiOfferedAmount oi
-            PartialFill n ->
-              if isBuyOrder o
-                then
-                  floor $ fromIntegral n * getPrice (price o)
-                else
-                  n
-        )
+  (pspecs, tspecs) = let specs = (map f mr) in (lefts specs, rights specs)
+
+  f (OrderExecutionInfo ft o@(OrderInfo {orderData = Just (DEXOrderDataPartial poi)})) =
+    let getAmountPartial CompleteFill = orderAmount o
+        getAmountPartial (PartialFill n) = if isBuyOrder o then floor $ fromIntegral n * getPrice (orderPrice o) else n
+     in Left (poiRef poi, getAmountPartial ft)
+  f (OrderExecutionInfo ft o@OrderInfo {orderData = Just (DEXOrderDataTwoWay twoi)}) =
+    Right $
+      TWFillSpec
+        { twfsOrderRef = (twoiRef twoi)
+        , twfsDirection = fromJust (orderDir o)
+        , twfsAmount = getAmountTwo ft
+        , twfsOracleCertificate = orderCert o
+        , twfsRecipient = recpAddr
+        }
+   where
+    calcNet o = ceiling $ (fromIntegral o :: Rational) * (q % (p + q))
+     where
+      f = rationalToGHC (twoiMakerFeeRatio twoi)
+      p = numerator f
+      q = denominator f
+    getAmountTwo CompleteFill = calcNet (orderAmount o)
+    getAmountTwo (PartialFill n) = calcNet (if isBuyOrder o then floor $ fromIntegral n * getPrice (orderPrice o) else n)
+  f _ = error "DEX order data not found"
 
 matchExecutionInfoUtxoRef :: MatchExecutionInfo -> GYTxOutRef
-matchExecutionInfoUtxoRef (OrderExecutionInfo CompleteFill OrderInfo {orderRef}) = orderRef
-matchExecutionInfoUtxoRef (OrderExecutionInfo (PartialFill _) OrderInfo {orderRef}) = orderRef
+matchExecutionInfoUtxoRef (OrderExecutionInfo _ (OrderInfo {orderData = Just (DEXOrderDataPartial p)})) = poiRef p
+matchExecutionInfoUtxoRef (OrderExecutionInfo _ (OrderInfo {orderData = Just (DEXOrderDataTwoWay t)})) = twoiRef t
+matchExecutionInfoUtxoRef _ = error "DEX order data not found"

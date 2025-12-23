@@ -21,8 +21,14 @@ cabal.project.local
 .HTF/
 .ghc.environment.*
 .DS_Store
-config-files/*
 *.skey
 *.vkey
 *.addr
 .vscode
+*.swp
+tags
+TAGS
+config-core.json
+keygen
+launch
+log

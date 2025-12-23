@@ -1,0 +1,17 @@
+{
+    "coreProvider": { "maestroToken": "<<MAESTRO_TOKEN>>" },
+    "networkId": "preprod",
+    "logging": [
+      {
+        "type": { "tag": "gcp" },
+        "severity": "Debug",
+        "verbosity": "V0"
+      },
+      {
+        "type": { "tag": "gySource", "source": "https://a2f42ae3266941ab835020234432ab70:2c69cef3c6f04f48aa09d2f489d1b3dd@o1376840.ingest.sentry.io/6742080" },
+        "severity": "Error",
+        "verbosity": "V1"
+      }
+    ],
+    "logTiming": true
+}

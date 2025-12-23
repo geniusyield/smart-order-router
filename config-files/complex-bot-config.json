@@ -1,0 +1,40 @@
+{
+   "signingKeyFP": "bot.skey",
+   "nftMintingPolicyFP": "compiled-scripts/minting-policy",
+   "orderValidatorFP": "compiled-scripts/partial-order",
+   "validatorRefs": {
+      "refAddr": "addr_test1wrgvy8fermjrruaf7fnndtmpuw4xx4cnvfqjp5zqu8kscfcvh32qk",
+      "refNftAC": "fae686ea8f21d567841d703dea4d4221c2af071a6f2b433ff07c0af2.8309f9861928a55d37e84f6594b878941edce5e351f7904c2c63b559bde45c5c",
+      "scriptRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#2",
+      "nftPolicyRef": "be6f8dc16d4e8d5aad566ff6b5ffefdda574817a60d503e2a0ea95f773175050#1"
+   },
+   "strategy": "MixedSellBuyPartial",
+   "scanDelay": 40000000,
+   "maxOrderMatches": 5,
+   "maxTxsPerIteration": 4,
+   "randomizeMatchesFound": true,
+   "scanTokens": [
+      { "commodityAsset": "dda5fdb1002f7389b33e036b6afee82a8189becb6cba852e8b79b4fb.0014df1047454e53", "currencyAsset": "lovelace" },
+      { "commodityAsset": "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f.534e454b", "currencyAsset": "lovelace" },
+      { "commodityAsset": "6c8642400e8437f737eb86df0fc8a8437c760f48592b1ba8f5767e81.456d706f7761", "currencyAsset": "lovelace" },
+      { "commodityAsset": "77cab21b1a0eb05886cb9fe8e3d297456e53c1d948dba42219a1b380.4d796e746820546f6b656e2058", "currencyAsset": "lovelace" },
+      { "commodityAsset": "8fef2d34078659493ce161a6c7fba4b56afefa8535296a5743f69587.41414441", "currencyAsset": "lovelace" },
+      { "commodityAsset": "a0028f350aaabe0545fdcb56b039bfb08e4bb4d8c4d7c3c7d481c235.484f534b59", "currencyAsset": "lovelace" },
+      { "commodityAsset": "f43a62fdc3965df486de8a0d32fe800963589c41b38946602a0dc535.41474958", "currencyAsset": "lovelace" },
+      { "commodityAsset": "f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b69880.69555344", "currencyAsset": "lovelace" },
+      { "commodityAsset": "a2944573e99d2ed3055b808eaa264f0bf119e01fc6b18863067c63e4.4d454c44", "currencyAsset": "lovelace" },
+      { "commodityAsset": "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad.0014df105553444d", "currencyAsset": "lovelace" },
+      { "commodityAsset": "0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa.4e49474854", "precision": 6 }
+   ],
+   "lovelaceWarningThreshold": 5000000,
+   "priceProvider": {
+      "tag": "tapTools",
+      "contents": {
+         "apiKey": "YOUR_API_KEY"
+      }
+   },
+   "tokenInfos": {
+      "dda5fdb1002f7389b33e036b6afee82a8189becb6cba852e8b79b4fb.0014df1047454e53": { "ticker": "GENS", "decimals": 6 },
+      "c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad.0014df105553444d": { "ticker": "USDM", "decimals": 6 }
+   }
+}

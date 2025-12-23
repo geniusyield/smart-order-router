@@ -22,31 +22,29 @@ import GeniusYield.Types          ( GYNetworkId, GYProviders )
 import GeniusYield.OrderBot.Types ( OrderAssetPair, OrderInfo
                                   , OrderType (BuyOrder, SellOrder)
                                   )
-import GeniusYield.Api.Dex.Constants (DEXInfo (..))
+import GeniusYield.Api.DEX.Constants (DEXInfo (..))
 
 -- | Means to connect to a data source for orders/liquidity positions.
 data Connection
 
-{- | Given a path to the expected config file, connect to a data source serving
-     information about GY DEX orders on the blockchain.
--}
+-- | Given a path to the expected config file, connect to a data source serving
+-- information about GY DEX orders on the blockchain.
 connectDB :: GYNetworkId -> GYProviders -> IO Connection
 
 -- | Close the DB connection.
 closeDB :: Connection -> IO ()
 
-{- | Fetch all unique DEX order asset pairings, and for each such asset pair, fetch all buy and sell orders.
-
-It takes a list of asset pairs. Only orders operating these asset class pairs, are
-retrieved. This can increase throughput when utilize effectively.
-
-The distinction between "buy" and "sell" is further explained in "GeniusYield.OrderBot.Types.OrderInfo"
-and "GeniusYield.OrderBot.Types.OrderAssetPair".
-
-Fetched information is fed into given accumulator function one by one, in no particular order. The accumulator
-function's results will be accumulated, starting with the given accumulator, and returned wrapped within an
-IO action.
--}
+-- | Fetch all unique DEX order asset pairings, and for each such asset pair, fetch all buy and sell orders.
+-- 
+-- It takes a list of asset pairs. Only orders operating these asset class pairs, are
+-- retrieved. This can increase throughput when utilize effectively.
+-- 
+-- The distinction between "buy" and "sell" is further explained in "GeniusYield.OrderBot.Types.OrderInfo"
+-- and "GeniusYield.OrderBot.Types.OrderAssetPair".
+-- 
+-- Fetched information is fed into given accumulator function one by one, in no particular order. The accumulator
+-- function's results will be accumulated, starting with the given accumulator, and returned wrapped within an
+-- IO action.
 withEachAssetOrders
     :: Connection
     -> DEXInfo

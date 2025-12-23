@@ -62,30 +62,32 @@ data OrderBotConfig
   , botCStakeAddress :: Maybe GYStakeAddressBech32
   -- ^ Optional bech32 encoded stake address.
   , botCCollateral :: Maybe GYTxOutRef
-  -- ^ UTxO ref of the collateral UTxO in the bot's wallet.
-  --
-  --          NOTE: If collateral is Nothing, then Atlas will choose some UTxO to
-  --           function as collateral. If a TxOutRef is given, the bool indicates wheter
-  --           the collateral can be spent in the tx.
+  {- ^ UTxO ref of the collateral UTxO in the bot's wallet.
+
+         NOTE: If collateral is Nothing, then Atlas will choose some UTxO to
+          function as collateral. If a TxOutRef is given, the bool indicates wheter
+          the collateral can be spent in the tx.
+  -}
   , botCExecutionStrat :: BotStrategy
   -- ^ Name of the running strategy.
   , botCAssetFilter :: [OrderAssetPair]
   -- ^ List of asset pairs to scan.
   , botCRescanDelay :: Int
-  -- ^ The duration (microseconds) of time we wait before re-initiating a
-  --          complete iteration for the bot.
+  {- ^ The duration (microseconds) of time we wait before re-initiating a
+         complete iteration for the bot.
+  -}
   , botCMaxOrderMatches :: Int
   -- ^ The maximum amount of orders to be matched into a single transaction.
   , botCMaxTxsPerIteration :: Int
-  -- ^ The maximum amount of transactions that the bot will build, sign and
-  --          submit in each iteration.
+  {- ^ The maximum amount of transactions that the bot will build, sign and
+         submit in each iteration.
+  -}
   , botCRandomizeMatchesFound :: Bool
-  -- ^ A boolean that dictates whether the bot chooses the tx to submit at
-  --          random (to decrease collisions), or not (to maximize profit)
+  {- ^ A boolean that dictates whether the bot chooses the tx to submit at
+         random (to decrease collisions), or not (to maximize profit)
+  -}
   , botCLovelaceWarningThreshold :: Maybe Natural
   -- ^ If bot's lovelace balance falls below this value, bot would log warning logs.
-  , botCPriceProvider :: Maybe PriceProviderConfig
-  -- ^ Price provider used to get ADA value of a token
   , botCTokenInfos :: Maybe (Map GYAssetClass AssetInfo)
   -- ^ Token registry information. Since prices given by provider are usually in display units, we need information such as registered decimal places to know lovelace value per indivisible token unit.
   }
@@ -104,7 +106,6 @@ instance FromEnv OrderBotConfig where
       <*> envWithMsg "Must be either 'True' or 'False'" "BOTC_RANDOMIZE_MATCHES_FOUND"
       -- Apparently, there is no `Var` instance for `Natural` in `System.Envy`.
       <*> (fmap (fromIntegral @Word64 @Natural) <$> envMaybe "BOTC_LOVELACE_WARNING_THRESHOLD")
-      <*> (fmap forceFromJson <$> envMaybe "BOTC_PRICE_PROVIDER")
       <*> (fmap forceFromJson <$> envMaybe "BOTC_TOKEN_INFOS")
    where
     parseCBORSKey :: String -> GYPaymentSigningKey
@@ -140,7 +141,6 @@ instance FromJSON OrderBotConfig where
       <*> obj .: "maxTxsPerIteration"
       <*> obj .: "randomizeMatchesFound"
       <*> obj .:? "lovelaceWarningThreshold"
-      <*> obj .:? "priceProvider"
       <*> obj .:? "tokenInfos"
   parseJSON _ = fail "Expecting object value"
 
@@ -177,7 +177,6 @@ buildOrderBot OrderBotConfig {..} = do
       , botRescanDelay = botCRescanDelay
       , botTakeMatches = takeMatches botCRandomizeMatchesFound maxTxPerIter
       , botLovelaceWarningThreshold = botCLovelaceWarningThreshold
-      , botPriceProvider = botCPriceProvider
       , botTokenInfos = fromMaybe mempty botCTokenInfos
       }
  where

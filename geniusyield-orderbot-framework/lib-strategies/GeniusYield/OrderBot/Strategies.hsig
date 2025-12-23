@@ -30,29 +30,23 @@ instance Var BotStrategy
 instance Show BotStrategy
 instance Eq BotStrategy
 
-{- | A list containing all implemented strategies. This list is used for the
-     tests and for the error message during env variable parsing.
--}
+-- | A list containing all implemented strategies. This list is used for the
+-- tests and for the error message during env variable parsing.
 allStrategies :: [BotStrategy]
 
-{- | The result of order matching - should contain information to perform execute order and LP transactions.
-
-Essentially, all orders (and pool swaps) in a list of 'MatchExecutionInfo's are matched with each other.
-
-All of their tokens are put into one big transaction bucket, which is then auto balanced to pay each other.
-Any extra tokens are returned to the bot wallet - this is known as arbitrage profit.
--}
+-- | The result of order matching - should contain information to perform execute order and LP transactions.
+-- 
+-- Essentially, all orders (and pool swaps) in a list of 'MatchExecutionInfo's are matched with each other.
+-- 
+-- All of their tokens are put into one big transaction bucket, which is then auto balanced to pay each other.
+-- Any extra tokens are returned to the bot wallet - this is known as arbitrage profit.
 type MatchResult = [MatchExecutionInfo]
 
-{- | A matching strategy has access to the 'OrderBook' for a single asset pair,
-alongside all its relevant query functions. It must produce a 'MatchResult' which
-has information on how to execute the order matching transaction.
--}
+-- | A matching strategy has access to the 'OrderBook' for a single asset pair,
+-- alongside all its relevant query functions. It must produce a 'MatchResult' which
+-- has information on how to execute the order matching transaction.
 type IndependentStrategy = (OrderAssetPair -> OrderBook -> [MatchResult])
 
-{- | Given a bot strategy and a max amount of orders per transaction, creates
-     an independent strategy.
--}
+-- | Given a bot strategy and a max amount of orders per transaction, creates
+-- an independent strategy.
 mkIndependentStrategy :: BotStrategy -> Natural -> IndependentStrategy
-
-

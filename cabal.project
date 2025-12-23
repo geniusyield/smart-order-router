@@ -10,14 +10,18 @@ repository cardano-haskell-packages
     d4a35cd3121aa00d18544bb0ac01c3e1691d618f462c46129271bccf39f7e8ee
 
 -- repeating the index-state for hackage to work around hackage.nix parsing limitation
-index-state: 2024-08-27T16:28:01Z
+index-state: 2024-10-10T00:52:24Z
 
+-- NOTE: Do not bump chap index beyond that used by target cardano-node version.
 index-state:
-  , hackage.haskell.org 2024-08-27T16:28:01Z
-  , cardano-haskell-packages 2024-07-24T14:16:32Z
+  , hackage.haskell.org 2024-10-10T00:52:24Z
+  , cardano-haskell-packages 2024-11-26T16:00:26Z
 
 packages: .
 packages: geniusyield-orderbot-framework
+packages: geniusyield-annset
+-- packages: ../dex-contracts-api/geniusyield-dex-api
+-- packages: ../dex-contracts-api/geniusyield-dex-api/geniusyield-onchain/geniusyield-core-common
 
 -- TODO: Default value should be @direct@ in upcoming 3.10 version of cabal, omit this line then.
 test-show-details: direct
@@ -25,27 +29,28 @@ test-show-details: direct
 source-repository-package
   type: git
   location: https://github.com/geniusyield/ply
-  tag: 4a61941b3287782d2c11f9ab1cae0889d0a57385
-  --sha256: sha256-24WKaBs6qiJzi++wTyqIh61Dc1QeCzeo0YqLE4wsEbg=
+  tag: f3190d3c6e09d8067525e0df4418a55bbace2625
   subdir: ply-core
 
 source-repository-package
   type: git
   location: https://github.com/geniusyield/atlas
-  tag: v0.6.0
-  --sha256: sha256-v+tTCIz8uyaQfsMJRc5F36TNK9ZPfrBxwXLYaXqZrZA=
+  -- tag: v0.11.1
+  tag: b97614f2dbd98355acb7643fdd1a368cd13500b2
+  --sha256: sha256-AncjJEbdoaf2PL9r7nAF7bfSdUWx05VuXVPzD2yqY50=
 
 source-repository-package
   type: git
-  location: https://github.com/geniusyield/dex-contracts-api
-  tag: b6ab4d8d722d22c3fc9eae9c8689de00ba8d37c2
+  -- location: https://github.com/geniusyield/dex-contracts-api
+  location: https://github.com/irfanaligy/dex-contracts-api
+  tag: aabca507ea55c735d3fcf6044623469c1fdf8398
   subdir:
     geniusyield-dex-api
-    geniusyield-server-lib
+    geniusyield-dex-api/geniusyield-onchain/geniusyield-core-common
     geniusyield-orderbot-lib
-    geniusyield-onchain/geniusyield-common
+    geniusyield-server-lib
 
--------- Begin contents from @atlas@'s @cabal.project@ file. --------
+------- @atlas@ @cabal.project@ file
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
@@ -53,33 +58,40 @@ package cardano-crypto-praos
 source-repository-package
   type: git
   location: https://github.com/maestro-org/haskell-sdk
-  tag: v1.7.2
-  --sha256: sha256-nXnelHH4a+V0nguP8oUDlyEz/fLQ/i1fs/flyZTmvAc=
+  tag: v1.7.3
 
 -- TODO: Temporary, until proposed changes are in upstream (track https://github.com/mlabs-haskell/clb/pull/44)
 source-repository-package
   type: git
   location: https://github.com/sourabhxyz/clb
-  tag: 09414a93047b4c7f6e03e20d1730c9c0f88e1d46
-  --sha256: sha256-y5fF8IDywt/pQ3HsRE6CpAlqK4uiU/SRuDIqSHxBED0=
+  tag: 257475d987994db8dc5b1b27c9cdf6d6ea547a2c
+  subdir:
+    clb
+    emulator
 
 -- Obtaining cardano-node stuff for 9.1.0. These aren't published on CHaP yet.
 source-repository-package
   type: git
   location: https://github.com/IntersectMBO/cardano-node
-  tag: 9.1.0
-  --sha256: sha256-F5wgRA820x16f+8c/LlEEBG0rMJIA1XWw6X0ZwX5UWs=
+  tag: 10.1.3
   subdir:
     cardano-node
     cardano-testnet
     trace-dispatcher
+
+source-repository-package
+  type: git
+  location: https://github.com/sourabhxyz/cardano-api
+  tag: 7081a82a4c6dd57cc0ab01027a18233d3bca2b3e
+  subdir:
+    cardano-api
+    cardano-api-gen
 
 -- TODO: Make changes upstream
 source-repository-package
   type: git
   location: https://github.com/geniusyield/cardano-wallet
   tag: 3413fdf74fd25b100662abf2a49c1afc892f1b79
-  --sha256: sha256-V5DNUzraaDJo6cXc1eeVVIJNWqC8JayQrJeNNLg/Els=
   subdir:
     lib/address-derivation-discovery
     lib/balance-tx/
@@ -102,15 +114,12 @@ source-repository-package
     lib/wallet-benchmarks/
     lib/wallet/
 
------- Following is mostly from @cardano-wallet@'s @cabal.project@ file. -------
-
---------------------------------------------------------------------------------
+------- @cardano-wallet@ @cabal.project@ file
 
 source-repository-package
     type: git
     location: https://github.com/IntersectMBO/cardano-addresses
     tag: 2bca06deaa60e54a5322ac757387d744bf043367
-    --sha256: 1y1mzfly7jac40b9g4xc078rcm5zqhc3xxv77kwxi10yph1jwq7z
     subdir: command-line
             core
 
@@ -145,23 +154,29 @@ source-repository-package
     type: git
     location: https://github.com/cardano-foundation/cardano-wallet-client.git
     tag: 353412ca621dc28af53e4a19795338b19bab1b7b
-    --sha256: 04q58c82wy6x9nkwqbvcxbv6s61fx08h5kf62sb511aqp08id4bb
     subdir: generated
 
---------------------------------------------------------------------------------
--- BEGIN Constraints tweaking section
+-- source-repository-package
+--     type: git
+--     location: https://github.com/cardano-foundation/cardano-wallet-agda
+--     tag: f3479b501a2efe50bcf1ee0d09bc2d1325a982e7
+--     subdir:
+--       lib/customer-deposit-wallet-pure
+--       lib/cardano-wallet-read
 
+------- BEGIN Constraints tweaking section
 allow-newer:
     async-timer:unliftio-core
   , servant-openapi3:*
   , katip:Win32
   , raven-haskell:aeson
+  , cardano-wallet-read:*
 
 constraints:
-    base >= 4.18.2.0 && < 5
+    base ^>= 4.18.2.0
   , openapi3 >= 3.2.0
-  , persistent ^>= 2.14.6.0
-  , cardano-node ^>= 9.1.0
+  , persistent >= 2.14.6.0
+  , cardano-node >= 9.1.0
   , bech32 >= 1.1.7
 
   -- lower versions of katip won't build with the Win32-2.12.0.1
@@ -172,9 +187,10 @@ constraints:
   -- Cardano Node dependencies:
   , io-classes >= 1.4
   , io-classes -asserts
-  , ouroboros-consensus-cardano ^>= 0.18
-  , ouroboros-network ^>= 0.16.1
-  , ouroboros-network-protocols ^>= 0.9
+  , cardano-ledger-api >= 1.9
+  , ouroboros-network >= 0.17
+  , ouroboros-consensus-cardano >= 0.18
+  , ouroboros-network-protocols >= 0.9
 
 -- END Constraints tweaking section
 --------------------------------------------------------------------------------

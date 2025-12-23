@@ -16,8 +16,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: haskell-actions/run-fourmolu@v10
       - uses: tfausak/cabal-gild-setup-action@v2
-      - run: cabal-gild --input geniusyield-orderbot.cabal --mode check
-      - run: cabal-gild --input geniusyield-orderbot-framework/geniusyield-orderbot-framework.cabal --mode check
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry

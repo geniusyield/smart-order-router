@@ -11,7 +11,8 @@
 
 ## Table of contents
 
-- 🎓 [Crash Course](#crash-course-geniusyield-dex-orders-and-the-smart-order-routers)
+- 🎓 [(Legacy) Partial Orders](#partial-orders)
+- 🎓 [Two Way Orders](#two-way-orders)
 - 🔍 [How bot assesses profitability](#how-bot-assesses-profitability)
 - 🚀 [Building and running](#building-and-running-the-smart-order-router)
 - 🧠 [Strategies](#strategies)
@@ -42,7 +43,7 @@ Router instance and profit from the arbitrage opportunities, thus running a Smar
 Router instance is not only contributing to the further decentralization of the protocol,
 but it is also incentivized financially and it might be a very lucrative activity.
 
-## Crash Course: GeniusYield DEX Orders and the Smart Order Routers
+## GeniusYield DEX Partial Orders
 
 Let's start with a brief overview of the GY DEX Orders, to provide some context, so the reader could better understand
 the purpose of the Smart Order Routers and how they could benefit from customizing existing order matching strategies
@@ -93,7 +94,7 @@ this is highly relevant, since it is possible to design different matching strat
 Up to this point, we quickly covered the key actions that can be performed over the orders.
 There shouldn't be any surprise if we mention that each action is performed by a transaction.
 
-Let's say that we have one more order offering of `20 GENS`, with a unit price of `0.4 ADA`.
+Let's say that we have one more order offering of `20 GENS`, with a unit price of `2.5 ADA`.
 
 We could earn some tokens by “combining” the two orders and take advantage of the price difference.
 
@@ -137,6 +138,16 @@ Using the previous example we could have two cases:
 
 If we want our earnings to be in `GENS` then the commodity must be `ADA`. So we can buy from the sell order,
 `20 ADA` using `8 GENS`, then using these `20 ADA` we can get `10 GENS` from the buy order, earning `2 GENS`.
+
+## GeniusYield DEX Two Way Orders
+The current flagship orders in GeniusYield DEX are are termed SLV (Smart Liquidity Vaults) or Two-Way Orders. They could be thought of as above described Partial Orders with the 2 additional functionalities:
+- ability to set price based on current market exchange price of the token
+- ability to set straight and reverse order simultaneously
+
+Two-Way Orders are liquidity positions which are placed just like above mentioned DEX Orders but the market maker can allow trades on both tokens. For example, any order which specifies two-way trade, say between ADA and GENS can specify independent prices for both "buy ADA from GENS" and "buy GENS from ADA" trades. Additionally, while specifying prices the maker has the option to set a fixed price (say, 1 GENS for 2 ADA) but also a dynamic price (say, 1 GENS for current market exchange rate of GENS/ADA plus some offset and spread). The GeniusYield DEX exposes a web API which can be called to get the current price of any currency pair (one of which must be ADA). The certified price from GeniusYield DEX contains a certificate which must be included whenever one wants to fill an order using the Haskell API in `dex-contracts-api` repo.
+
+In conclusion, with the introduction of SLV, the market maker is not required to run a bot to place and adjust separate bid and ask orders because only one two-way SLV with dynamic prices (set based on offset + spread) can "mimic" the market bot with dynamically changing positions.
+
 
 ## How bot assesses profitability?
 

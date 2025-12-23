@@ -1,0 +1,108 @@
+cabal-version: 3.4
+name:          geniusyield-annset
+version:       0.1.0.0
+build-type:    Simple
+
+-- Common sections
+
+common common-ghc-opts
+  ghc-options:
+    -Wall -Wincomplete-uni-patterns -Wno-unticked-promoted-constructors
+
+common common-deps
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , containers
+    , atlas-cardano
+    , geniusyield-orderbot-framework:common
+    , mtl
+    , serialise
+    , QuickCheck
+    , quickcheck-instances
+    , text
+
+common common-lang
+  default-language: Haskell2010
+  default-extensions:
+    ApplicativeDo
+    BangPatterns
+    BinaryLiterals
+    ConstrainedClassMethods
+    ConstraintKinds
+    DataKinds
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    DoAndIfThenElse
+    EmptyCase
+    EmptyDataDecls
+    EmptyDataDeriving
+    ExistentialQuantification
+    ExplicitForAll
+    FlexibleContexts
+    FlexibleInstances
+    GADTSyntax
+    GeneralisedNewtypeDeriving
+    HexFloatLiterals
+    ImplicitPrelude
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MonomorphismRestriction
+    MultiParamTypeClasses
+    NoStarIsType
+    NumericUnderscores
+    OverloadedStrings
+    PatternGuards
+    PatternSynonyms
+    PolyKinds
+    PostfixOperators
+    RankNTypes
+    RelaxedPolyRec
+    RoleAnnotations
+    ScopedTypeVariables
+    StandaloneDeriving
+    StandaloneKindSignatures
+    TraditionalRecordSyntax
+    TupleSections
+    TypeApplications
+    TypeFamilyDependencies
+    TypeOperators
+    ViewPatterns
+
+-- Build targets
+
+library
+  import:          common-lang
+  import:          common-ghc-opts
+  import:          common-deps
+  hs-source-dirs:  src
+  exposed-modules:
+    GeniusYield.AnnSet.Internal
+    GeniusYield.AnnSet.Types
+    GeniusYield.AnnSet.Unsafe
+  ghc-options:     -O2
+
+test-suite         geniusyield-annset-tests
+  import:          common-lang
+  import:          common-ghc-opts
+  import:          common-deps
+  type:            exitcode-stdio-1.0
+  main-is:         Spec.hs
+  hs-source-dirs:  tests
+  ghc-options:
+    -threaded -rtsopts -O2
+  build-depends:
+    , geniusyield-annset
+    , nothunks
+    , tasty
+    , tasty-quickcheck
+  other-modules: Properties

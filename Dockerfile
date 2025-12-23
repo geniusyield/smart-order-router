@@ -6,11 +6,19 @@ WORKDIR /SOR
 RUN cabal update
 COPY cabal.project ./
 COPY geniusyield-orderbot.cabal ./
+COPY geniusyield-annset/geniusyield-annset.cabal ./geniusyield-annset/
 COPY geniusyield-orderbot-framework/geniusyield-orderbot-framework.cabal geniusyield-orderbot-framework/
 
 RUN cabal update
 
 COPY . .
+
+# Ensure we run a known Fourmolu release regardless of the base image version
+RUN curl -L https://github.com/fourmolu/fourmolu/releases/download/v0.17.0.0/fourmolu-0.17.0.0-linux-x86_64 -o /usr/local/bin/fourmolu \
+ && chmod +x /usr/local/bin/fourmolu
+
+# Run FOURMOLU checks (check code formatting - but skip the dist-newstyle folder):
+RUN fourmolu --mode check .
 
 RUN cabal build all
 RUN cabal test
